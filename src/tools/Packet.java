@@ -9,6 +9,9 @@ public class Packet {
 	/*The min length of a packet*/
 	public final static int MIN_PACKET_LENGTH = 22;
 	
+	private int srcPort;
+	private int dstPort;
+	
 	private boolean SYN = false;
 	private boolean ACK = false;
 	private boolean FIN = false;
@@ -22,6 +25,8 @@ public class Packet {
 		if (packetByte.length < MIN_PACKET_LENGTH) 
 			throw new IllegalPacketLengthException("Too short packet with " + packetByte.length + "bytes.");
 		
+		srcPort = ((packetByte[0] & 0xff) << 8) + (packetByte[1] & 0xff);
+		dstPort = ((packetByte[2] & 0xff) << 8) + (packetByte[3] & 0xff);
 		for (int i = 4; i < 12; i++) {
 			seqNum += (packetByte[i] & 0xff) << ((11 - i) * 8);
 		}
@@ -35,13 +40,48 @@ public class Packet {
 		data = Arrays.copyOfRange(packetByte, 21, packetByte.length);
 	}
 	
-	public Packet(boolean SYN, boolean ACK, boolean FIN, int seqNum, int ackNum, byte[] data) {
+	public Packet(int srcPort, int dstPort, boolean SYN, boolean ACK, boolean FIN, int seqNum, int ackNum, byte[] data) {
 		this.SYN = SYN;
 		this.ACK = ACK;
 		this.FIN = FIN;
 		this.seqNum = seqNum;
 		this.ackNum = ackNum;
 		this.data = data;
+	}
+	
+	public byte[] getBytes() {
+		return new byte[1];
+	}
+	
+	public int getLength() {
+		return 21 + data.length;
+	}
+	
+	public void assign(Packet src) {
+		this.srcPort = src.srcPort;
+		this.dstPort = src.dstPort;
+		this.SYN = src.SYN;
+		this.ACK = src.ACK;
+		this.FIN = src.FIN;
+		this.seqNum = src.seqNum;
+		this.ackNum = src.ackNum;
+		this.data = Arrays.copyOf(src.data, src.data.length);
+	}
+	
+	public int getSrcPort() {
+		return srcPort;
+	}
+
+	public void setSrcPort(int srcPort) {
+		this.srcPort = srcPort;
+	}
+
+	public int getDstPort() {
+		return dstPort;
+	}
+
+	public void setDstPort(int dstPort) {
+		this.dstPort = dstPort;
 	}
 	
 	public boolean isSYN() {
