@@ -7,7 +7,8 @@ import Exception.IllegalPacketLengthException;
 public class Packet {
 	
 	/*The min length of a packet*/
-	public final static int MIN_PACKET_LENGTH = 22;
+	public final static int MIN_PACKET_LENGTH = 26;
+	public final static int MAX_PACKET_LENGTH = 1500;
 	
 	private int srcPort;
 	private int dstPort;
@@ -19,10 +20,13 @@ public class Packet {
 	private int seqNum = 0;
 	private int ackNum = 0;
 	
+	private int windowLen = 0;
+	private byte[] checkSum;
+	
 	private byte[] data;
 	
 	public Packet(byte[] packetByte) throws IllegalPacketLengthException {
-		if (packetByte.length < MIN_PACKET_LENGTH) 
+		if (packetByte.length < MIN_PACKET_LENGTH || packetByte.length > MAX_PACKET_LENGTH) 
 			throw new IllegalPacketLengthException("Too short packet with " + packetByte.length + "bytes.");
 		
 		srcPort = ((packetByte[0] & 0xff) << 8) + (packetByte[1] & 0xff);
@@ -37,16 +41,23 @@ public class Packet {
 		ACK = (packetByte[20] & 0x40) != 0x00;
 		FIN = (packetByte[20] & 0x20) != 0x00;
 		
-		data = Arrays.copyOfRange(packetByte, 21, packetByte.length);
+		windowLen = ((packetByte[21] & 0xff) << 8) + (packetByte[22] & 0xff);
+		checkSum = Arrays.copyOfRange(packetByte, 23, 25);
+		
+		data = Arrays.copyOfRange(packetByte, MIN_PACKET_LENGTH - 1, packetByte.length);
 	}
 	
-	public Packet(int srcPort, int dstPort, boolean SYN, boolean ACK, boolean FIN, int seqNum, int ackNum, byte[] data) {
+	public Packet(int srcPort, int dstPort, boolean SYN, boolean ACK, boolean FIN, int seqNum, int ackNum, int windowLen, byte[] data) {
+		this.srcPort = srcPort;
+		this.dstPort = dstPort;
 		this.SYN = SYN;
 		this.ACK = ACK;
 		this.FIN = FIN;
 		this.seqNum = seqNum;
 		this.ackNum = ackNum;
+		this.windowLen = windowLen;
 		this.data = data;
+		this.comuteCheckSum();
 	}
 	
 	public byte[] getBytes() {
@@ -54,7 +65,7 @@ public class Packet {
 	}
 	
 	public int getLength() {
-		return 21 + data.length;
+		return MIN_PACKET_LENGTH + data.length - 1;
 	}
 	
 	public void assign(Packet src) {
@@ -65,7 +76,26 @@ public class Packet {
 		this.FIN = src.FIN;
 		this.seqNum = src.seqNum;
 		this.ackNum = src.ackNum;
+		this.windowLen = src.windowLen;
+		this.checkSum = Arrays.copyOf(src.checkSum, 2);
 		this.data = Arrays.copyOf(src.data, src.data.length);
+	}
+	
+	public boolean isValid() {
+		/*TODO check checksum*/
+		return true;
+	}
+	
+	public void comuteCheckSum() {
+		/*TODO compute the checkSum*/
+	}
+	
+	public int getWindowLen() {
+		return windowLen;
+	}
+
+	public void setWindowLen(int windowLen) {
+		this.windowLen = windowLen;
 	}
 	
 	public int getSrcPort() {

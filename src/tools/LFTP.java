@@ -5,6 +5,8 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.HashMap;
+import java.util.Map;
 
 import Exception.IllegalPacketLengthException;
 
@@ -13,6 +15,7 @@ public class LFTP extends Thread{
 	private InetAddress dstAddr;
 	private int dstPort;
 	private int srcPort;
+	private int UDPDstPort;
 	private DatagramSocket socket;
 	
 	private boolean isFinished;
@@ -22,12 +25,15 @@ public class LFTP extends Thread{
 	private MyList<Packet> list;
 	
 	private int cwnd, fwnd;
+	private int ackNum = 0;
+	private Map<Integer, Integer> map = new HashMap<Integer, Integer>();
 	
 	private connectionType ctype;
 	
-	public LFTP(InetAddress dstAddr, int srcPort, int dstPort, Object listLock, MyList<Packet> list, Object socketLock, DatagramSocket socket, connectionType ctype) throws SocketException {
+	public LFTP(InetAddress dstAddr, int srcPort, int dstPort, int UDPDstPort, Object listLock, MyList<Packet> list, Object socketLock, DatagramSocket socket, connectionType ctype) throws SocketException {
 		this.dstAddr = dstAddr;
 		this.dstPort = dstPort;
+		this.UDPDstPort = UDPDstPort;
 		this.socket = new DatagramSocket(srcPort);
 		isFinished = false;
 		this.listLock = listLock;
@@ -36,14 +42,10 @@ public class LFTP extends Thread{
 		this.socket = socket;
 		this.ctype = ctype;
 	}
-
-	public void close() {
-		socket.close();
-	}
 	
 	private void send(Packet data) throws IOException {
 		synchronized(socketLock) {
-			DatagramPacket datagramPacket = new DatagramPacket(data.getBytes(), data.getLength(), dstAddr, dstPort);
+			DatagramPacket datagramPacket = new DatagramPacket(data.getBytes(), data.getLength(), dstAddr, UDPDstPort);
 			socket.send(datagramPacket);
 		}
 	}
@@ -65,6 +67,15 @@ public class LFTP extends Thread{
 		
 	}
 	
+	public void sayHello() {
+		Packet packet = new Packet(srcPort, dstPort, true, false, false, (int)(1 + Math.random() * 1000), 0, fwnd, new byte[1]);
+		try {
+			this.send(packet);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
 	private void replyHello() {
 		
 	}
@@ -81,12 +92,11 @@ public class LFTP extends Thread{
 				try {
 					wait();
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			} else {
 				flag = false;
-				/*Todo: write temp into file */
+				/*TODO write temp into file */
 			}
 		}
 	}
@@ -121,6 +131,22 @@ public class LFTP extends Thread{
 		this.dstPort = dstPort;
 	}
 	
+	public int getUDPDstPort() {
+		return UDPDstPort;
+	}
+
+	public void setUDPDstPort(int uDPDstPort) {
+		UDPDstPort = uDPDstPort;
+	}
+
+	public int getAckNum() {
+		return ackNum;
+	}
+
+	public void setAckNum(int ackNum) {
+		this.ackNum = ackNum;
+	}
+
 	private enum connectionType {
 		SEND, GET
 	}
