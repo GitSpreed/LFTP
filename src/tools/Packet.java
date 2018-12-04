@@ -11,7 +11,7 @@ import Exception.IllegalPacketLengthException;
 public class Packet {
 	
 	/*The min length of a packet*/
-	public final static int MIN_PACKET_LENGTH = 26;
+	public final static int MIN_PACKET_LENGTH = 24;
 	public final static int MAX_PACKET_LENGTH = 1500;
 	
 	private int srcPort;
@@ -48,7 +48,7 @@ public class Packet {
 		REQ = (packetByte[20] & 0x10) != 0x00;
 		
 		windowLen = ((packetByte[21] & 0xff) << 8) + (packetByte[22] & 0xff);
-		checkSum = Arrays.copyOfRange(packetByte, 23, 25);
+		//checkSum = Arrays.copyOfRange(packetByte, 23, 25);
 		
 		data = Arrays.copyOfRange(packetByte, MIN_PACKET_LENGTH - 1, packetByte.length);
 	}
@@ -69,7 +69,42 @@ public class Packet {
 	
 	/*TODO get packet bytes*/
 	public byte[] getBytes() {
-		return new byte[1];
+		byte[] ret = new byte[MIN_PACKET_LENGTH + data.length - 1];
+		
+		ret[0] = (byte) ((srcPort & 0xff00) >> 8);
+		ret[1] = (byte) ((srcPort & 0xff));
+		
+		ret[2] = (byte) ((dstPort & 0xff00) >> 8);
+		ret[3] = (byte) ((dstPort & 0xff));
+		
+		for (int i = 4; i < 12; i++) {
+			ret[i] = (byte) ((seqNum >> ((11 - i) * 8)) & 0xff);
+		}
+		
+		for (int i = 12; i < 20; i++) {
+			ret[i] = (byte) ((ackNum >> ((11 - i) * 8)) & 0xff);
+		}
+		
+		if (SYN) ret[20] |= 0x80;
+		else ret[20] &= 0x7f;
+		
+		if (ACK) ret[20] |= 0x40;
+		else ret[20] &= 0xbf;
+		
+		if (FIN) ret[20] |= 0x20;
+		else ret[20] &= 0xdf;
+		
+		if (REQ) ret[20] |= 0x10;
+		else ret[20] &= 0xef;
+		
+		ret[21] = (byte) ((windowLen >> 8) & 0xff);
+		ret[22] = (byte) (windowLen & 0xff);
+		
+		for (int i = MIN_PACKET_LENGTH - 1; i < ret.length; i++) {
+			ret[i] = data[i - MIN_PACKET_LENGTH + 1];
+		}
+		
+		return ret;
 	}
 	
 	public int getLength() {

@@ -33,6 +33,7 @@ public class LFTP extends Thread{
 	
 	public LFTP(InetAddress dstAddr, int srcPort, int dstPort, int UDPDstPort, Object listLock, MyList list, Object socketLock, DatagramSocket socket) throws SocketException {
 		this.dstAddr = dstAddr;
+		this.srcPort = srcPort;
 		this.dstPort = dstPort;
 		this.UDPDstPort = UDPDstPort;
 		this.socket = socket;
@@ -47,6 +48,9 @@ public class LFTP extends Thread{
 			DatagramPacket datagramPacket = new DatagramPacket(data.getBytes(), data.getLength(), dstAddr, UDPDstPort);
 			try {
 				socket.send(datagramPacket);
+				System.out.println("Send Packet: SrcPort=" + data.getSrcPort() + " DstPort=" + data.getDstPort()
+									+ " seq=" + data.getSeqNum() + " ack=" + data.getAckNum() + " "
+									+ data.isSYN() + " " + data.isACK() + " " +  data.isFIN() + " " + data.isREQ());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -60,6 +64,7 @@ public class LFTP extends Thread{
 				if (iter.getDstPort() == srcPort) {
 					temp = iter;
 					list.remove(iter);
+					System.out.println("Receive Packet DstPort=" + temp.getDstPort() + " seq=" + temp.getSeqNum() + " ack=" + temp.getAckNum());
 					return temp;
 				}
 			}
@@ -69,6 +74,7 @@ public class LFTP extends Thread{
 	
 	protected void sendBack() {
 		Packet packet = new Packet(srcPort, dstPort, false, true, false, false, seqNum++, ackNum, fwnd, new byte[1]);
+		System.out.println("Send back ACK=" + ackNum);
 		this.send(packet);
 	}
 	
