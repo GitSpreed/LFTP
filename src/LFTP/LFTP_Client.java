@@ -42,6 +42,7 @@ public class LFTP_Client {
 			if (args[0].equals("lsend")) {
 				LFTPSend send = new LFTPSend(addr, 10000, 0, UDPGetPort, listLock, list, socketLock, socket);
 				send.setFilePath(args[2]);
+				send.sayHello();
 				send.start();
 				
 				DatagramPacket p = new DatagramPacket(new byte[2000], 2000);
@@ -54,6 +55,7 @@ public class LFTP_Client {
 				}
 			} else if (args[0].equals("lget")) {
 				LFTPGet get = new LFTPGet(addr, 10000, 0, UDPGetPort, listLock, list, socketLock, socket);
+				get.sayHello();
 				get.start();
 				
 				DatagramPacket p = new DatagramPacket(new byte[2000], 2000);

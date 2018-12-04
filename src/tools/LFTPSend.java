@@ -11,11 +11,14 @@ import java.net.SocketException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class LFTPSend extends LFTP {
 	
 	private InputStream in = null;
-	Map<Integer, Packet> cache = new HashMap<>();
+	private Map<Integer, Packet> cache = new HashMap<>();
+	private int count = 0;
 	
 	public LFTPSend(InetAddress dstAddr, int srcPort, int dstPort, int UDPDstPort, Object listLock, MyList list,
 			Object socketLock, DatagramSocket socket) throws SocketException {
@@ -28,7 +31,7 @@ public class LFTPSend extends LFTP {
 		int bytesNum = 0;
 		try {
 			while(!this.isWindowFull() && (bytesNum = in.read(data)) != -1 ) {
-				Packet packet = new Packet(getSrcPort(), getDstPort(), false, false, false, getSeqNum(), getAckNum(), getFwnd(), Arrays.copyOf(data, bytesNum));
+				Packet packet = new Packet(getSrcPort(), getDstPort(), false, false, false, true, getSeqNum(), getAckNum(), getFwnd(), Arrays.copyOf(data, bytesNum));
 				cache.put(packet.getSeqNum(), packet);
 				this.setSeqNum(getSeqNum() + bytesNum);
 				this.send(packet);
@@ -47,16 +50,28 @@ public class LFTPSend extends LFTP {
 		boolean flag = true;
 		Packet packet = null;
 		while((packet = receive()) != null || flag) {
+			Timer timer = new Timer();
 			if (packet == null) {
 				try {
+					timer.schedule(new Task(timer, this, 1000), 1000);
 					wait();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			} else {
 				flag = false;
+				timer.cancel();
 				//this.updateAckNum(packet.getSeqNum(), packet.getSeqNum() + packet.getData().length);
-				this.updateLastByteRecv(packet.getAckNum());
+				if (this.updateLastByteRecv(packet.getAckNum())) {
+					count++;
+				} else {
+					count = 1;
+				}
+				
+				//Quick reSend
+				if (count == 3) {
+					this.reSend();
+				}
 			}
 		}
 	}
@@ -74,7 +89,7 @@ public class LFTPSend extends LFTP {
 		}
 	}
 	
-	private boolean reSend() {
+	public boolean reSend() {
 		Packet packet = cache.get(lastByteRecv + 1);
 		if (packet != null) {
 			this.send(packet);
@@ -83,9 +98,26 @@ public class LFTPSend extends LFTP {
 		return false;
 	}
 	
+	public void sayHello() {
+		int seqNum = (int)(1 + Math.random() * 1000);
+		this.setSeqNum(seqNum);
+		Packet packet = new Packet(getSrcPort(), getDstPort(), true, false, false, true, seqNum, 0, getFwnd(), new byte[1]);
+		cache.put(seqNum, packet);
+		this.send(packet);
+	}
+	
+	
+	public void replyHello() {
+		int seqNum = (int)(1 + Math.random() * 1000);
+		this.setSeqNum(seqNum);
+		Packet packet = new Packet(getSrcPort(), getDstPort(), true, true, false, true, seqNum, getAckNum(), getFwnd(), new byte[1]);
+		this.send(packet);
+	}
+	
+	
 	@Override
 	public void run() {
-		this.sayHello();
+
 		while (!this.isFinished()) {
 			this.sendFile();
 			this.receiveFile();

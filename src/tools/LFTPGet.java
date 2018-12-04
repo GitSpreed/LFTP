@@ -95,9 +95,22 @@ public class LFTPGet extends LFTP {
 		
 	}
 	
+	public void sayHello() {
+		int seqNum = (int)(1 + Math.random() * 1000);
+		this.setSeqNum(seqNum);
+		Packet packet = new Packet(getSrcPort(), getDstPort(), true, false, false, false, seqNum, 0, getFwnd(), new byte[1]);
+		this.send(packet);
+	}
+	
+	public void replyHello() {
+		int seqNum = (int)(1 + Math.random() * 1000);
+		this.setSeqNum(seqNum);
+		Packet packet = new Packet(getSrcPort(), getDstPort(), true, true, false, false, seqNum, getAckNum(), getFwnd(), new byte[1]);
+		this.send(packet);
+	}
+	
 	@Override
 	public void run() {
-		this.replyHello();
 		while (!this.isFinished()) {
 			this.receiveFile();
 		}

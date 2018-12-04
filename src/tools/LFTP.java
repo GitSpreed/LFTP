@@ -67,25 +67,13 @@ public class LFTP extends Thread{
 		}
 	}
 	
-	protected void sayHello() {
-		seqNum = (int)(1 + Math.random() * 1000);
-		Packet packet = new Packet(srcPort, dstPort, true, false, false, seqNum++, 0, fwnd, new byte[1]);
-		this.send(packet);
-	}
-	
-	protected void replyHello() {
-		seqNum = (int)(1 + Math.random() * 1000);
-		Packet packet = new Packet(srcPort, dstPort, true, true, false, seqNum++, ackNum, fwnd, new byte[1]);
-		this.send(packet);
-	}
-	
 	protected void sendBack() {
-		Packet packet = new Packet(srcPort, dstPort, false, true, false, seqNum++, ackNum, fwnd, new byte[1]);
+		Packet packet = new Packet(srcPort, dstPort, false, true, false, false, seqNum++, ackNum, fwnd, new byte[1]);
 		this.send(packet);
 	}
 	
 	protected Packet sendFin() {
-		Packet packet = new Packet(srcPort, dstPort, false, false, true, seqNum++, ackNum, fwnd, new byte[1]);
+		Packet packet = new Packet(srcPort, dstPort, false, false, true, false, seqNum++, ackNum, fwnd, new byte[1]);
 		this.send(packet);
 		return packet;
 	}
@@ -106,8 +94,13 @@ public class LFTP extends Thread{
 		return true;
 	}
 	
-	protected void updateLastByteRecv(int byteNum) {
-		lastByteRecv = Math.max(lastByteRecv, byteNum);
+	protected boolean updateLastByteRecv(int byteNum) {
+		if (lastByteRecv == byteNum) {
+			return true;
+		} else if (lastByteRecv < byteNum) {
+			lastByteRecv = byteNum;
+		}
+		return false;
 	}
 	
 	protected boolean isWindowFull() {

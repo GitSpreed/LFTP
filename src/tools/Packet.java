@@ -20,6 +20,7 @@ public class Packet {
 	private boolean SYN = false;
 	private boolean ACK = false;
 	private boolean FIN = false;
+	private boolean REQ = true;
 	
 	private int seqNum = 0;
 	private int ackNum = 0;
@@ -44,6 +45,7 @@ public class Packet {
 		SYN = (packetByte[20] & 0x80) != 0x00;
 		ACK = (packetByte[20] & 0x40) != 0x00;
 		FIN = (packetByte[20] & 0x20) != 0x00;
+		REQ = (packetByte[20] & 0x10) != 0x00;
 		
 		windowLen = ((packetByte[21] & 0xff) << 8) + (packetByte[22] & 0xff);
 		checkSum = Arrays.copyOfRange(packetByte, 23, 25);
@@ -51,12 +53,13 @@ public class Packet {
 		data = Arrays.copyOfRange(packetByte, MIN_PACKET_LENGTH - 1, packetByte.length);
 	}
 	
-	public Packet(int srcPort, int dstPort, boolean SYN, boolean ACK, boolean FIN, int seqNum, int ackNum, int windowLen, byte[] data) {
+	public Packet(int srcPort, int dstPort, boolean SYN, boolean ACK, boolean FIN, boolean REQ, int seqNum, int ackNum, int windowLen, byte[] data) {
 		this.srcPort = srcPort;
 		this.dstPort = dstPort;
 		this.SYN = SYN;
 		this.ACK = ACK;
 		this.FIN = FIN;
+		this.REQ = REQ;
 		this.seqNum = seqNum;
 		this.ackNum = ackNum;
 		this.windowLen = windowLen;
@@ -64,6 +67,7 @@ public class Packet {
 		this.comuteCheckSum();
 	}
 	
+	/*TODO get packet bytes*/
 	public byte[] getBytes() {
 		return new byte[1];
 	}
@@ -78,6 +82,7 @@ public class Packet {
 		this.SYN = src.SYN;
 		this.ACK = src.ACK;
 		this.FIN = src.FIN;
+		this.REQ = src.REQ;
 		this.seqNum = src.seqNum;
 		this.ackNum = src.ackNum;
 		this.windowLen = src.windowLen;
@@ -181,6 +186,14 @@ public class Packet {
 
 	public void setData(byte[] data) {
 		this.data = data;
+	}
+
+	public boolean isREQ() {
+		return REQ;
+	}
+
+	public void setREQ(boolean rEQ) {
+		REQ = rEQ;
 	}
 	
 }
