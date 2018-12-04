@@ -4,8 +4,11 @@ import java.io.IOException;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.ArrayList;
 
 public class LFTPGet extends LFTP {
+	
+	private ArrayList<Packet> cache = new ArrayList<Packet>();
 
 	public LFTPGet(InetAddress dstAddr, int srcPort, int dstPort, int UDPDstPort, Object listLock, MyList<Packet> list,
 			Object socketLock, DatagramSocket socket) throws SocketException {

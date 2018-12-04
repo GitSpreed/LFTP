@@ -9,11 +9,14 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class LFTPSend extends LFTP {
 	
-	private InputStream in;
-
+	private InputStream in = null;
+	Map<Integer, Packet> cache = new HashMap<>();
+	
 	public LFTPSend(InetAddress dstAddr, int srcPort, int dstPort, int UDPDstPort, Object listLock, MyList<Packet> list,
 			Object socketLock, DatagramSocket socket) throws SocketException {
 		super(dstAddr, srcPort, dstPort, UDPDstPort, listLock, list, socketLock, socket);
@@ -25,14 +28,18 @@ public class LFTPSend extends LFTP {
 		try {
 			while(!this.isWindowFull() && (bytesNum = in.read(data)) != -1 ) {
 				Packet packet = new Packet(getSrcPort(), getDstPort(), false, false, false, getSeqNum(), getAckNum(), getFwnd(), Arrays.copyOf(data, bytesNum));
+				cache.put(packet.getSeqNum(), packet);
+				this.setSeqNum(getSeqNum() + bytesNum);
 				this.send(packet);
+			}
+			if (bytesNum == -1) {
+				setFinished(true);
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 	
-	/* TODO check the logic*/
 	protected void receiveFile() throws IOException {
 		boolean flag = true;
 		Packet packet = null;
@@ -55,12 +62,22 @@ public class LFTPSend extends LFTP {
 		File file = new File(path);
 		if (!file.exists()) {
 			this.setFinished(true);
+			return ;
 		}
 		try {
 			in = new FileInputStream(file);
 		} catch (FileNotFoundException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	private boolean reSend(int seq) {
+		Packet packet = cache.get(seq);
+		if (packet != null) {
+			this.send(packet);
+			return true;
+		}
+		return false;
 	}
 	
 	@Override
@@ -70,6 +87,14 @@ public class LFTPSend extends LFTP {
 			this.sendFile();
 			try {
 				this.receiveFile();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		sendFin();
+		if (in != null) {
+			try {
+				in.close();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
