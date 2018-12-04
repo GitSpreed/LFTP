@@ -123,7 +123,7 @@ public class Packet {
 	
 	public void save() {
 		/* file IO*/
-		File file = new File("/Cache/" + seqNum + ".cache");
+		File file = new File("Cache/" + seqNum + ".cache");
 		FileOutputStream out = null;
 		
 		try {

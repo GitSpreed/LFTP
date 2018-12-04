@@ -36,7 +36,7 @@ public class LFTPSend extends LFTP {
 				this.send(packet);
 			}
 			if (bytesNum == -1) {
-				setFinished(true);
+				this.setFinished(true);
 				Packet fin = sendFin();
 				cache.put(fin.getSeqNum(), fin);
 			}
@@ -53,18 +53,27 @@ public class LFTPSend extends LFTP {
 			if (packet == null) {
 				try {
 					timer.schedule(new Task(timer, this, 1000), 1000);
-					
 					wait();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			} else {
 				flag = false;
-				if (packet.isSYN() && packet.isACK()) {
-					this.setDstPort(packet.getSrcPort());
-				}
+				/* TODO set right cancel */
 				timer.cancel();
-				//this.updateAckNum(packet.getSeqNum(), packet.getSeqNum() + packet.getData().length);
+				System.out.println("ReceiveFile: syn=" + packet.isSYN() + " ack=" + packet.isACK());
+				
+				if (packet.isSYN() && packet.isACK()) {
+					System.out.println("setDstPort: " + packet.getSrcPort());
+					this.setDstPort(packet.getSrcPort());
+					this.setAckNum(packet.getSeqNum() + 1);
+					this.setStart(true);
+				}
+				
+				if (packet.isFIN()) {
+					this.setFinished(true);
+				}
+				
 				if (this.updateLastByteRecv(packet.getAckNum())) {
 					count++;
 				} else {
@@ -104,8 +113,8 @@ public class LFTPSend extends LFTP {
 	
 	public void sayHello() {
 		int seqNum = (int)(1 + Math.random() * 1000);
-		this.setSeqNum(seqNum);
 		Packet packet = new Packet(getSrcPort(), getDstPort(), true, false, false, true, seqNum, 0, getFwnd(), new byte[1]);
+		this.setSeqNum(seqNum++);
 		cache.put(seqNum, packet);
 		this.send(packet);
 	}
@@ -123,12 +132,12 @@ public class LFTPSend extends LFTP {
 	public void run() {
 
 		System.out.println("begin to run");
-		while (!this.isFinished()) {
-			System.out.println("running");
-			this.sendFile();
-			System.out.println("send");
+		while(!this.isStart()) {
 			this.receiveFile();
-			System.out.println("receive");
+		}
+		while (!this.isFinished()) {
+			this.sendFile();
+			this.receiveFile();
 		}
 		if (in != null) {
 			try {

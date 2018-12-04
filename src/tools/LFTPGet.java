@@ -29,15 +29,21 @@ public class LFTPGet extends LFTP {
 		Packet packet = null;
 		while((packet = receive()) != null || flag) {
 			if (packet == null) {
+				System.out.println("get null, wait");
 				try {
 					wait();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			} else {
+				System.out.println("Thread get packet " + packet.getSeqNum());
 				flag = false;
 				this.updateAckNum(packet.getSeqNum(), packet.getSeqNum() + packet.getData().length);
-				//this.updateLastByteRecv(packet.getAckNum());
+				
+				if (packet.isSYN() && packet.isACK()) {
+					this.setDstPort(packet.getSrcPort());
+					this.setAckNum(packet.getSeqNum() + 1);
+				}
 				this.setFinished(packet.isFIN());
 				this.sendBack();
 				cache.add(packet);
@@ -57,15 +63,18 @@ public class LFTPGet extends LFTP {
 	}
 	
 	private void mergeFile() {
+		System.out.println("begin merge the file");
 		try {
-			File inFile = new File("Cache/name.cache");
-			FileInputStream in = new FileInputStream(inFile);
+			File inFile = null;
+			FileInputStream in = null;
+			//File inFile = new File("Cache/name.cache");
+			//FileInputStream in = new FileInputStream(inFile);
 			byte[] data = new byte[1500];
-			in.read(data);
-			in.close();
-			String name = new String(data);
+			//in.read(data);
+			//in.close();
+			//String name = new String(data);
 			
-			File outFile = new File("/download/" + "test.txt");
+			File outFile = new File("download/" + "test.txt");
 			if (!outFile.exists()) {
 				outFile.createNewFile();
 			}
@@ -81,7 +90,7 @@ public class LFTPGet extends LFTP {
 			    }
 			});
 			for (int iter : indexTable) {
-				inFile = new File("/Cache/" + iter + ".cache");
+				inFile = new File("Cache/" + iter + ".cache");
 				in = new FileInputStream(inFile);
 				int len = in.read(data);
 				in.close();
@@ -92,13 +101,14 @@ public class LFTPGet extends LFTP {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		System.out.println("end merge the file");
 		
 	}
 	
 	public void sayHello() {
 		int seqNum = (int)(1 + Math.random() * 1000);
-		this.setSeqNum(seqNum);
 		Packet packet = new Packet(getSrcPort(), getDstPort(), true, false, false, false, seqNum, 0, getFwnd(), new byte[1]);
+		this.setSeqNum(seqNum++);
 		this.send(packet);
 	}
 	

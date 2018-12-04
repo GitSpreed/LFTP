@@ -11,7 +11,6 @@ public class Test {
 		try {
 			packet2 = new Packet(packet.getBytes());
 		} catch (IllegalPacketLengthException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		System.out.println(packet2.getSrcPort() + " " + packet2.getDstPort() + " " + packet2.isSYN() + " " + packet2.isACK() + " " + packet2.isFIN() + " " + packet2.isREQ() + " " + packet2.getAckNum() + " " + packet2.getSeqNum() + " " + packet2.getWindowLen() + " " + packet2.getData().length);

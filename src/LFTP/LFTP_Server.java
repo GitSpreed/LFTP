@@ -34,21 +34,29 @@ public class LFTP_Server {
 			while (true) {
 				recSocket.receive(p);
 				Packet packet = new Packet(p.getData());
+				System.out.println("Receive packet: SrcPort=" + packet.getSrcPort() + " DstPort=" + packet.getDstPort() + " seq=" + packet.getSeqNum() + " ack=" + packet.getAckNum() + " " + packet.isSYN() + " " + packet.isACK() + " " + packet.isFIN() + " " + packet.isREQ());
 				if (packet.isSYN()) {
 					if (packet.isREQ()) {
+						System.out.println("get a send req");
 						LFTPGet temp = new LFTPGet(p.getAddress(), port++, packet.getSrcPort(), 9902, listLock, list, socketLock, socket);
+						temp.setAckNum(packet.getSeqNum() + 1);
 						temp.replyHello();
 						threadPool.add(temp);
 						temp.start();
 					} else {
+						System.out.println("get a get req");
 						LFTPSend temp = new LFTPSend(p.getAddress(), port++, packet.getSrcPort(), 9902, listLock, list, socketLock, socket);
+						temp.setAckNum(packet.getSeqNum() + 1);
 						temp.replyHello();
+						temp.setStart(true);
+						temp.setFilePath("test.txt");
 						threadPool.add(temp);
 						temp.start();
 					}
 				}
 				synchronized(listLock) {
 					list.add(packet);
+					System.out.println("add packet " + packet.getSeqNum() + " to list.");
 					for (Thread iter : threadPool) {
 						synchronized(iter) {
 							iter.notify();

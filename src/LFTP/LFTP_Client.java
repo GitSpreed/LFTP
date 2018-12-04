@@ -53,17 +53,22 @@ public class LFTP_Client {
 						}					
 					}
 				}
+				System.out.println("END");
 			} else if (args[0].equals("lget")) {
 				LFTPGet get = new LFTPGet(addr, 10000, 0, 9904, listLock, list, socketLock, socket);
 				get.sayHello();
 				get.start();
 				
-				DatagramPacket p = new DatagramPacket(new byte[2000], 2000);
+				DatagramPacket p = new DatagramPacket(new byte[1500], 1500);
 				while (!get.isFinished()) {
 					recSocket.receive(p);
+					Packet packet = new Packet(p.getData());
+					System.out.println("add packet " + packet.getSeqNum() + " to list.");
+					list.add(packet);
 					synchronized(listLock) {
-						list.add(new Packet(p.getData()));
-						get.notify();					
+						synchronized(get) {
+							get.notify();
+						}									
 					}
 				}
 			} else {

@@ -16,6 +16,7 @@ public class LFTP extends Thread{
 	private int UDPDstPort;
 	private DatagramSocket socket;
 	
+	private boolean isStart = false;
 	private boolean isFinished = false;
 	
 	private Object listLock;
@@ -85,13 +86,13 @@ public class LFTP extends Thread{
 	}
 	
 	protected boolean updateAckNum(int seq, int ack) {
-		if (seq == ackNum + 1) {
+		if (seq == ackNum) {
 			ackNum = ack;
-			Integer n = map.get(ackNum + 1);
+			Integer n = map.get(ackNum);
 			while (n != null) {
-				map.remove(ackNum + 1);
-				ackNum = n;
-				n = map.get(ackNum + 1);
+				map.remove(ackNum);
+				ackNum = n + 1;
+				n = map.get(ackNum);
 			}
 		} else {
 			if (map.get(seq) != null) return false;
@@ -182,5 +183,13 @@ public class LFTP extends Thread{
 
 	public void setFinished(boolean isFinished) {
 		this.isFinished = isFinished;
+	}
+
+	public boolean isStart() {
+		return isStart;
+	}
+
+	public void setStart(boolean isStart) {
+		this.isStart = isStart;
 	}
 }
