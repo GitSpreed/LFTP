@@ -1,5 +1,9 @@
 package tools;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.Arrays;
 
 import Exception.IllegalPacketLengthException;
@@ -79,6 +83,23 @@ public class Packet {
 		this.windowLen = src.windowLen;
 		this.checkSum = Arrays.copyOf(src.checkSum, 2);
 		this.data = Arrays.copyOf(src.data, src.data.length);
+	}
+	
+	public void save() {
+		/* file IO*/
+		File file = new File("/Cache/" + seqNum + ".cache");
+		FileOutputStream out = null;
+		
+		try {
+			if (!file.exists()) {
+				file.createNewFile();
+			}		
+			out = new FileOutputStream(file);
+			out.write(data);
+			out.close();
+		} catch(IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public boolean isValid() {

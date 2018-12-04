@@ -21,17 +21,17 @@ public class LFTP extends Thread{
 	private Object listLock;
 	private Object socketLock;
 
-	private MyList<Packet> list;
+	private MyList list;
 	
 	private int cwnd, fwnd;
 	private int seqNum = 0;
 	private int ackNum = 0;
 	
-	private int lastByteRecv = 0;
+	protected int lastByteRecv = 0;
 	
 	private Map<Integer, Integer> map = new HashMap<Integer, Integer>();
 	
-	public LFTP(InetAddress dstAddr, int srcPort, int dstPort, int UDPDstPort, Object listLock, MyList<Packet> list, Object socketLock, DatagramSocket socket) throws SocketException {
+	public LFTP(InetAddress dstAddr, int srcPort, int dstPort, int UDPDstPort, Object listLock, MyList list, Object socketLock, DatagramSocket socket) throws SocketException {
 		this.dstAddr = dstAddr;
 		this.dstPort = dstPort;
 		this.UDPDstPort = UDPDstPort;
@@ -84,9 +84,10 @@ public class LFTP extends Thread{
 		this.send(packet);
 	}
 	
-	protected void sendFin() {
+	protected Packet sendFin() {
 		Packet packet = new Packet(srcPort, dstPort, false, false, true, seqNum++, ackNum, fwnd, new byte[1]);
 		this.send(packet);
+		return packet;
 	}
 	
 	protected boolean updateAckNum(int seq, int ack) {

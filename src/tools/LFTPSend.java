@@ -17,11 +17,12 @@ public class LFTPSend extends LFTP {
 	private InputStream in = null;
 	Map<Integer, Packet> cache = new HashMap<>();
 	
-	public LFTPSend(InetAddress dstAddr, int srcPort, int dstPort, int UDPDstPort, Object listLock, MyList<Packet> list,
+	public LFTPSend(InetAddress dstAddr, int srcPort, int dstPort, int UDPDstPort, Object listLock, MyList list,
 			Object socketLock, DatagramSocket socket) throws SocketException {
 		super(dstAddr, srcPort, dstPort, UDPDstPort, listLock, list, socketLock, socket);
 	}
 	
+	/* TODO correct some logic error*/
 	protected void sendFile() {
 		byte[] data = new byte[Packet.MAX_PACKET_LENGTH - Packet.MIN_PACKET_LENGTH];
 		int bytesNum = 0;
@@ -34,6 +35,8 @@ public class LFTPSend extends LFTP {
 			}
 			if (bytesNum == -1) {
 				setFinished(true);
+				Packet fin = sendFin();
+				cache.put(fin.getSeqNum(), fin);
 			}
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -52,7 +55,7 @@ public class LFTPSend extends LFTP {
 				}
 			} else {
 				flag = false;
-				this.updateAckNum(packet.getSeqNum(), packet.getSeqNum() + packet.getData().length);
+				//this.updateAckNum(packet.getSeqNum(), packet.getSeqNum() + packet.getData().length);
 				this.updateLastByteRecv(packet.getAckNum());
 			}
 		}
@@ -71,8 +74,8 @@ public class LFTPSend extends LFTP {
 		}
 	}
 	
-	private boolean reSend(int seq) {
-		Packet packet = cache.get(seq);
+	private boolean reSend() {
+		Packet packet = cache.get(lastByteRecv + 1);
 		if (packet != null) {
 			this.send(packet);
 			return true;
@@ -87,7 +90,6 @@ public class LFTPSend extends LFTP {
 			this.sendFile();
 			this.receiveFile();
 		}
-		sendFin();
 		if (in != null) {
 			try {
 				in.close();
