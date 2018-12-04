@@ -1,20 +1,13 @@
 package tools;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
-
-import Exception.IllegalPacketLengthException;
 
 public class LFTP extends Thread{
 
@@ -28,6 +21,7 @@ public class LFTP extends Thread{
 	
 	private Object listLock;
 	private Object socketLock;
+
 	private MyList<Packet> list;
 	
 	private int cwnd, fwnd;
@@ -38,12 +32,9 @@ public class LFTP extends Thread{
 	
 	private Map<Integer, Integer> map = new HashMap<Integer, Integer>();
 	
-	private connectionType ctype;
-	
 	private ArrayList<Packet> cache = new ArrayList<Packet>();
-	private InputStream in;
 	
-	public LFTP(InetAddress dstAddr, int srcPort, int dstPort, int UDPDstPort, Object listLock, MyList<Packet> list, Object socketLock, DatagramSocket socket, connectionType ctype) throws SocketException {
+	public LFTP(InetAddress dstAddr, int srcPort, int dstPort, int UDPDstPort, Object listLock, MyList<Packet> list, Object socketLock, DatagramSocket socket) throws SocketException {
 		this.dstAddr = dstAddr;
 		this.dstPort = dstPort;
 		this.UDPDstPort = UDPDstPort;
@@ -53,17 +44,16 @@ public class LFTP extends Thread{
 		this.list = list;
 		this.socketLock = socketLock;
 		this.socket = socket;
-		this.ctype = ctype;
 	}
 	
-	private void send(Packet data) throws IOException {
+	protected void send(Packet data) throws IOException {
 		synchronized(socketLock) {
 			DatagramPacket datagramPacket = new DatagramPacket(data.getBytes(), data.getLength(), dstAddr, UDPDstPort);
 			socket.send(datagramPacket);
 		}
 	}
 	
-	private Packet receive() throws IOException {
+	protected Packet receive() throws IOException {
 		synchronized(listLock) {
 			Packet temp = null;
 			for (Packet iter : list) {
@@ -77,20 +67,7 @@ public class LFTP extends Thread{
 		}
 	}
 	
-	private void sendFile() {
-		byte[] data = new byte[Packet.MAX_PACKET_LENGTH - Packet.MIN_PACKET_LENGTH];
-		int bytesNum = 0;
-		try {
-			while((lastByteRecv - seqNum) < Math.max(fwnd, cwnd) && (bytesNum = in.read(data)) != -1 ) {
-				Packet packet = new Packet(srcPort, dstPort, false, true, false, seqNum, ackNum, fwnd, Arrays.copyOf(data, bytesNum));
-				this.send(packet);
-			}
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-	
-	public void sayHello() {
+	protected void sayHello() {
 		seqNum = (int)(1 + Math.random() * 1000);
 		Packet packet = new Packet(srcPort, dstPort, true, false, false, seqNum, 0, fwnd, new byte[1]);
 		try {
@@ -100,7 +77,7 @@ public class LFTP extends Thread{
 		}
 	}
 	
-	private void replyHello() {
+	protected void replyHello() {
 		seqNum = (int)(1 + Math.random() * 1000);
 		Packet packet = new Packet(srcPort, dstPort, true, true, false, seqNum, ackNum + 1, fwnd, new byte[1]);
 		try {
@@ -110,7 +87,7 @@ public class LFTP extends Thread{
 		}
 	}
 	
-	private void sendBack() {
+	protected void sendBack() {
 		Packet packet = new Packet(srcPort, dstPort, false, true, isFinished, seqNum++, ackNum + 1, fwnd, new byte[1]);
 		try {
 			this.send(packet);
@@ -119,7 +96,16 @@ public class LFTP extends Thread{
 		}
 	}
 	
-	private boolean updateAckNum(int seq, int ack) {
+	protected void sendFin() {
+		Packet packet = new Packet(srcPort, dstPort, false, false, true, seqNum++, ackNum, fwnd, new byte[1]);
+		try {
+			this.send(packet);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	protected boolean updateAckNum(int seq, int ack) {
 		if (seq == ackNum + 1) {
 			ackNum = ack;
 			Integer n = map.get(ackNum + 1);
@@ -135,56 +121,45 @@ public class LFTP extends Thread{
 		return true;
 	}
 	
-	public void setFilePath(String path) {
-		File file = new File(path);
-		if (!file.exists()) {
-			isFinished = true;
-		}
-		try {
-			in = new FileInputStream(file);
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		}
+	protected void updateLastByteRecv(int byteNum) {
+		lastByteRecv = Math.max(lastByteRecv, byteNum);
 	}
 	
-	private void receiveFile() throws IOException {
-		boolean flag = true;
-		Packet packet = null;
-		while((packet = receive()) != null || flag) {
-			if (packet == null) {
-				try {
-					wait();
-				} catch (InterruptedException e) {
-					e.printStackTrace();
-				}
-			} else {
-				flag = false;
-				this.updateAckNum(packet.getSeqNum(), packet.getSeqNum() + packet.getData().length);
-				lastByteRecv = Math.max(lastByteRecv, packet.getAckNum());
-				if (ctype == connectionType.GET) {
-					isFinished = packet.isFIN();
-					this.sendBack();
-					/*TODO write cache into file */
-				}
-			}
-		}
+	protected boolean isWindowFull() {
+		return (lastByteRecv - seqNum) > Math.max(fwnd, cwnd);
 	}
-	
+
 	@Override
-	public void run() {
-		while (!isFinished) {
-			try {
-				if (ctype == connectionType.SEND) {
-					this.sendFile();
-				}	
-				this.receiveFile();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
+	public void run() throws UnsupportedOperationException{
+		throw new UnsupportedOperationException();
 	}
 	
 	//getter and setter
+	
+	public int getSrcPort() {
+		return srcPort;
+	}
+
+	public void setSrcPort(int srcPort) {
+		this.srcPort = srcPort;
+	}
+
+	public int getFwnd() {
+		return fwnd;
+	}
+
+	public void setFwnd(int fwnd) {
+		this.fwnd = fwnd;
+	}
+
+	public int getSeqNum() {
+		return seqNum;
+	}
+
+	public void setSeqNum(int seqNum) {
+		this.seqNum = seqNum;
+	}
+	
 	public InetAddress getDstAddr() {
 		return dstAddr;
 	}
@@ -216,8 +191,12 @@ public class LFTP extends Thread{
 	public void setAckNum(int ackNum) {
 		this.ackNum = ackNum;
 	}
+	
+	public boolean isFinished() {
+		return isFinished;
+	}
 
-	private enum connectionType {
-		SEND, GET
+	public void setFinished(boolean isFinished) {
+		this.isFinished = isFinished;
 	}
 }
