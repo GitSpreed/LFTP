@@ -11,7 +11,7 @@ import Exception.IllegalPacketLengthException;
 public class Packet {
 	
 	/*The min length of a packet*/
-	public final static int MIN_PACKET_LENGTH = 24;
+	public final static int MIN_PACKET_LENGTH = 15;
 	public final static int MAX_PACKET_LENGTH = 1500;
 	
 	private int srcPort;
@@ -25,8 +25,7 @@ public class Packet {
 	private int seqNum = 0;
 	private int ackNum = 0;
 	
-	private int windowLen = 0;
-	private byte[] checkSum;
+	private int windowLen = 20000;
 	
 	private byte[] data;
 	
@@ -36,19 +35,18 @@ public class Packet {
 		
 		srcPort = ((packetByte[0] & 0xff) << 8) + (packetByte[1] & 0xff);
 		dstPort = ((packetByte[2] & 0xff) << 8) + (packetByte[3] & 0xff);
-		for (int i = 4; i < 12; i++) {
-			seqNum += (packetByte[i] & 0xff) << ((11 - i) * 8);
+		for (int i = 4; i < 8; i++) {
+			seqNum += (packetByte[i] & 0xff) << ((7 - i) * 8);
 		}
-		for (int i = 12; i < 20; i++) {
-			ackNum += (packetByte[i] & 0xff) << ((19 - i) * 8);
+		for (int i = 8; i < 12; i++) {
+			ackNum += (packetByte[i] & 0xff) << ((11 - i) * 8);
 		}
-		SYN = (packetByte[20] & 0x80) != 0x00;
-		ACK = (packetByte[20] & 0x40) != 0x00;
-		FIN = (packetByte[20] & 0x20) != 0x00;
-		REQ = (packetByte[20] & 0x10) != 0x00;
+		SYN = (packetByte[12] & 0x80) != 0x00;
+		ACK = (packetByte[12] & 0x40) != 0x00;
+		FIN = (packetByte[12] & 0x20) != 0x00;
+		REQ = (packetByte[12] & 0x10) != 0x00;
 		
-		windowLen = ((packetByte[21] & 0xff) << 8) + (packetByte[22] & 0xff);
-		//checkSum = Arrays.copyOfRange(packetByte, 23, 25);
+		windowLen = ((packetByte[13] & 0xff) << 8) + (packetByte[14] & 0xff);
 		
 		data = Arrays.copyOfRange(packetByte, MIN_PACKET_LENGTH - 1, packetByte.length);
 	}
@@ -64,7 +62,6 @@ public class Packet {
 		this.ackNum = ackNum;
 		this.windowLen = windowLen;
 		this.data = data;
-		this.comuteCheckSum();
 	}
 	
 	/*TODO get packet bytes*/
@@ -77,28 +74,28 @@ public class Packet {
 		ret[2] = (byte) ((dstPort & 0xff00) >> 8);
 		ret[3] = (byte) ((dstPort & 0xff));
 		
-		for (int i = 4; i < 12; i++) {
-			ret[i] = (byte) ((seqNum >> ((11 - i) * 8)) & 0xff);
+		for (int i = 4; i < 8; i++) {
+			ret[i] = (byte) ((seqNum >> ((7 - i) * 8)) & 0xff);
 		}
 		
-		for (int i = 12; i < 20; i++) {
+		for (int i = 8; i < 12; i++) {
 			ret[i] = (byte) ((ackNum >> ((11 - i) * 8)) & 0xff);
 		}
 		
-		if (SYN) ret[20] |= 0x80;
-		else ret[20] &= 0x7f;
+		if (SYN) ret[12] |= 0x80;
+		else ret[12] &= 0x7f;
 		
-		if (ACK) ret[20] |= 0x40;
-		else ret[20] &= 0xbf;
+		if (ACK) ret[12] |= 0x40;
+		else ret[12] &= 0xbf;
 		
-		if (FIN) ret[20] |= 0x20;
-		else ret[20] &= 0xdf;
+		if (FIN) ret[12] |= 0x20;
+		else ret[12] &= 0xdf;
 		
-		if (REQ) ret[20] |= 0x10;
-		else ret[20] &= 0xef;
+		if (REQ) ret[12] |= 0x10;
+		else ret[12] &= 0xef;
 		
-		ret[21] = (byte) ((windowLen >> 8) & 0xff);
-		ret[22] = (byte) (windowLen & 0xff);
+		ret[13] = (byte) ((windowLen >> 8) & 0xff);
+		ret[14] = (byte) (windowLen & 0xff);
 		
 		for (int i = MIN_PACKET_LENGTH - 1; i < ret.length; i++) {
 			ret[i] = data[i - MIN_PACKET_LENGTH + 1];
@@ -121,7 +118,6 @@ public class Packet {
 		this.seqNum = src.seqNum;
 		this.ackNum = src.ackNum;
 		this.windowLen = src.windowLen;
-		this.checkSum = Arrays.copyOf(src.checkSum, 2);
 		this.data = Arrays.copyOf(src.data, src.data.length);
 	}
 	
@@ -140,15 +136,6 @@ public class Packet {
 		} catch(IOException e) {
 			e.printStackTrace();
 		}
-	}
-	
-	public boolean isValid() {
-		/*TODO check checksum*/
-		return true;
-	}
-	
-	public void comuteCheckSum() {
-		/*TODO compute the checkSum*/
 	}
 	
 	public int getWindowLen() {

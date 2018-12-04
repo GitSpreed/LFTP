@@ -20,7 +20,7 @@ public class Task extends TimerTask {
 	public void run() {
 		callback.reSend();
 		time *= 2;
-		timer.schedule(this, time);
+		timer.schedule(new Task(timer, callback, time), time);
 	}
 
 }

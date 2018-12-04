@@ -23,7 +23,7 @@ public class LFTP extends Thread{
 
 	private MyList list;
 	
-	private int cwnd, fwnd;
+	private int cwnd = 20000, fwnd = 20000;
 	private int seqNum = 0;
 	private int ackNum = 0;
 	

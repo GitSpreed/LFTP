@@ -48,7 +48,9 @@ public class LFTP_Client {
 					recSocket.receive(p);
 					synchronized(listLock) {
 						list.add(new Packet(p.getData()));
-						send.notify();					
+						synchronized (send) {
+							send.notify();	
+						}					
 					}
 				}
 			} else if (args[0].equals("lget")) {

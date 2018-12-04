@@ -12,7 +12,6 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
-import java.util.TimerTask;
 
 public class LFTPSend extends LFTP {
 	
@@ -46,7 +45,7 @@ public class LFTPSend extends LFTP {
 		}
 	}
 	
-	protected void receiveFile() {
+	protected synchronized void receiveFile() {
 		boolean flag = true;
 		Packet packet = null;
 		while((packet = receive()) != null || flag) {
@@ -54,6 +53,7 @@ public class LFTPSend extends LFTP {
 			if (packet == null) {
 				try {
 					timer.schedule(new Task(timer, this, 1000), 1000);
+					
 					wait();
 				} catch (InterruptedException e) {
 					e.printStackTrace();
@@ -122,9 +122,13 @@ public class LFTPSend extends LFTP {
 	@Override
 	public void run() {
 
+		System.out.println("begin to run");
 		while (!this.isFinished()) {
+			System.out.println("running");
 			this.sendFile();
+			System.out.println("send");
 			this.receiveFile();
+			System.out.println("receive");
 		}
 		if (in != null) {
 			try {
@@ -133,6 +137,7 @@ public class LFTPSend extends LFTP {
 				e.printStackTrace();
 			}
 		}
+		System.out.println("end to run");
 	}
 
 }
