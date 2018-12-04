@@ -24,7 +24,7 @@ public class LFTPGet extends LFTP {
 		super(dstAddr, srcPort, dstPort, UDPDstPort, listLock, list, socketLock, socket);
 	}
 	
-	protected void receiveFile() {
+	protected synchronized void receiveFile() {
 		boolean flag = true;
 		Packet packet = null;
 		while((packet = receive()) != null || flag) {
@@ -65,7 +65,7 @@ public class LFTPGet extends LFTP {
 			in.close();
 			String name = new String(data);
 			
-			File outFile = new File("/download/" + name);
+			File outFile = new File("/download/" + "test.txt");
 			if (!outFile.exists()) {
 				outFile.createNewFile();
 			}

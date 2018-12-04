@@ -60,6 +60,9 @@ public class LFTPSend extends LFTP {
 				}
 			} else {
 				flag = false;
+				if (packet.isSYN() && packet.isACK()) {
+					this.setDstPort(packet.getSrcPort());
+				}
 				timer.cancel();
 				//this.updateAckNum(packet.getSeqNum(), packet.getSeqNum() + packet.getData().length);
 				if (this.updateLastByteRecv(packet.getAckNum())) {
@@ -80,6 +83,7 @@ public class LFTPSend extends LFTP {
 		File file = new File(path);
 		if (!file.exists()) {
 			this.setFinished(true);
+			System.out.println("file not exist:" + path);
 			return ;
 		}
 		try {
