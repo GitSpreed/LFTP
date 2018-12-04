@@ -15,7 +15,7 @@ public class LFTPGet extends LFTP {
 		super(dstAddr, srcPort, dstPort, UDPDstPort, listLock, list, socketLock, socket);
 	}
 	
-	protected void receiveFile() throws IOException {
+	protected void receiveFile() {
 		boolean flag = true;
 		Packet packet = null;
 		while((packet = receive()) != null || flag) {
@@ -40,11 +40,7 @@ public class LFTPGet extends LFTP {
 	public void run() {
 		this.replyHello();
 		while (!this.isFinished()) {
-			try {
-				this.receiveFile();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			this.receiveFile();
 			
 		}
 	}

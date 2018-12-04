@@ -40,7 +40,7 @@ public class LFTPSend extends LFTP {
 		}
 	}
 	
-	protected void receiveFile() throws IOException {
+	protected void receiveFile() {
 		boolean flag = true;
 		Packet packet = null;
 		while((packet = receive()) != null || flag) {
@@ -85,11 +85,7 @@ public class LFTPSend extends LFTP {
 		this.sayHello();
 		while (!this.isFinished()) {
 			this.sendFile();
-			try {
-				this.receiveFile();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			this.receiveFile();
 		}
 		sendFin();
 		if (in != null) {

@@ -53,7 +53,7 @@ public class LFTP extends Thread{
 		}
 	}
 	
-	protected Packet receive() throws IOException {
+	protected Packet receive(){
 		synchronized(listLock) {
 			Packet temp = null;
 			for (Packet iter : list) {
