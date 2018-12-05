@@ -66,8 +66,8 @@ public class LFTP_Client {
 					recSocket.receive(p);
 					Packet packet = new Packet(Arrays.copyOf(p.getData(), p.getLength()));
 					System.out.println("add packet " + packet.getSeqNum() + " to list.");
-					list.add(packet);
 					synchronized(listLock) {
+						list.add(packet);
 						synchronized(get) {
 							get.notify();
 						}									
