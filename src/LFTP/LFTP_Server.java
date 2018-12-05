@@ -33,14 +33,17 @@ public class LFTP_Server {
 			
 			DatagramPacket p = new DatagramPacket(new byte[1500], 1500);
 			while (true) {
+				
 				recSocket.receive(p);
 				Packet packet = new Packet(Arrays.copyOf(p.getData(), p.getLength()));
 				System.out.println("UDP data packet length" + p.getData().length + " " + p.getLength());
 				System.out.println("Receive packet: SrcPort=" + packet.getSrcPort() + " DstPort=" + packet.getDstPort() + " seq=" + packet.getSeqNum() + " ack=" + packet.getAckNum() + " " + packet.isSYN() + " " + packet.isACK() + " " + packet.isFIN() + " " + packet.isREQ());
+				
 				if (packet.isSYN()) {
 					if (packet.isREQ()) {
 						System.out.println("get a send req");
 						LFTPGet temp = new LFTPGet(p.getAddress(), port++, packet.getSrcPort(), 9902, listLock, list, socketLock, socket);
+						temp.setFileName(new String(packet.getData()));
 						temp.setAckNum(packet.getSeqNum() + 1);
 						temp.replyHello();
 						threadPool.add(temp);
@@ -49,9 +52,9 @@ public class LFTP_Server {
 						System.out.println("get a get req");
 						LFTPSend temp = new LFTPSend(p.getAddress(), port++, packet.getSrcPort(), 9902, listLock, list, socketLock, socket);
 						temp.setAckNum(packet.getSeqNum() + 1);
+						temp.setFileName(new String(packet.getData()));
 						temp.replyHello();
 						temp.setStart(true);
-						temp.setFilePath("test.mp4");
 						threadPool.add(temp);
 						temp.start();
 					}

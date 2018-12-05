@@ -16,6 +16,9 @@ public class LFTPGet extends LFTP {
 	
 	private ArrayList<Packet> cache = new ArrayList<Packet>();
 	private ArrayList<Integer> indexTable = new ArrayList<Integer>();
+	
+	private String downloadPath = "download/";
+	private String fileName = null;
 
 	public LFTPGet(InetAddress dstAddr, int srcPort, int dstPort, int UDPDstPort, Object listLock, MyList list,
 			Object socketLock, DatagramSocket socket) throws SocketException {
@@ -69,14 +72,9 @@ public class LFTPGet extends LFTP {
 		try {
 			File inFile = null;
 			FileInputStream in = null;
-			//File inFile = new File("Cache/name.cache");
-			//FileInputStream in = new FileInputStream(inFile);
 			byte[] data = new byte[1500];
-			//in.read(data);
-			//in.close();
-			//String name = new String(data);
 			
-			File outFile = new File("download/" + "test.mp4");
+			File outFile = new File(downloadPath + fileName);
 			if (!outFile.exists()) {
 				outFile.createNewFile();
 			}
@@ -110,7 +108,8 @@ public class LFTPGet extends LFTP {
 	
 	public void sayHello() {
 		int seqNum = (int)(1 + Math.random() * 1000);
-		Packet packet = new Packet(getSrcPort(), getDstPort(), true, false, false, false, seqNum++, 0, getFwnd(), new byte[1]);
+		Packet packet = new Packet(getSrcPort(), getDstPort(), true, false, false, false, seqNum, 0, getFwnd(), fileName.getBytes());
+		seqNum += fileName.getBytes().length;
 		this.setSeqNum(seqNum);
 		this.send(packet);
 	}
@@ -120,6 +119,14 @@ public class LFTPGet extends LFTP {
 		Packet packet = new Packet(getSrcPort(), getDstPort(), true, true, false, false, seqNum++, getAckNum(), getFwnd(), new byte[1]);
 		this.setSeqNum(seqNum);
 		this.send(packet);
+	}
+	
+	public void setDownloadPath(String path) {
+		this.downloadPath = new String(path);
+	}
+	
+	public void setFileName(String name) {
+		this.fileName = new String(name);
 	}
 	
 	@Override

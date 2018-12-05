@@ -15,6 +15,9 @@ import java.util.Timer;
 
 public class LFTPSend extends LFTP {
 	
+	public static final String defaultPath = "Resource/";
+	
+	private String fileName = null;
 	private InputStream in = null;
 	private Map<Integer, Packet> cache = new HashMap<>();
 	private int count = 0;
@@ -94,11 +97,12 @@ public class LFTPSend extends LFTP {
 		}
 	}
 	
-	public void setFilePath(String path) {
-		File file = new File(path);
+	public void setFileName(String name) {
+		File file = new File(defaultPath + name);
+		this.fileName = new String(name);
 		if (!file.exists()) {
 			this.setFinished(true);
-			System.out.println("file not exist:" + path);
+			System.out.println("file not exist:" + name);
 			return ;
 		}
 		try {
@@ -119,7 +123,8 @@ public class LFTPSend extends LFTP {
 	
 	public void sayHello() {
 		int seqNum = (int)(1 + Math.random() * 1000);
-		Packet packet = new Packet(getSrcPort(), getDstPort(), true, false, false, true, seqNum++, 0, getFwnd(), new byte[1]);
+		Packet packet = new Packet(getSrcPort(), getDstPort(), true, false, false, true, seqNum, 0, getFwnd(), fileName.getBytes());
+		seqNum += fileName.getBytes().length;
 		this.setSeqNum(seqNum);
 		cache.put(seqNum, packet);
 		this.send(packet);

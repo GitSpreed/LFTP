@@ -19,16 +19,21 @@ public class LFTP_Client {
 	static final int UDPGetPort = 9902;
 	
 	public static void main(String[] args) {
+		
 		if (args.length != 3) {
 			System.out.println("Usage: java LFTP_Client lsend/lget myserver mylargefile");
 			return ;
 		}
+		System.out.println("arg[0]="+args[0]);
+		System.out.println("arg[1]="+args[1]);
+		System.out.println("arg[2]="+args[2]);
 		
 		Object listLock = new Object();
 		Object socketLock = new Object();
 		MyList list = MyList.getInstance();
 		DatagramSocket socket = null;
 		DatagramSocket recSocket = null;
+		
 		try {
 			socket = new DatagramSocket(UDPSendPort);
 			recSocket = new DatagramSocket(UDPGetPort);
@@ -40,8 +45,9 @@ public class LFTP_Client {
 		try {
 			addr = InetAddress.getByName(args[1]);
 			if (args[0].equals("lsend")) {
+				
 				LFTPSend send = new LFTPSend(addr, 10000, 0, 9904, listLock, list, socketLock, socket);
-				send.setFilePath(args[2]);
+				send.setFileName(args[2]);
 				send.sayHello();
 				send.start();
 				
@@ -55,9 +61,11 @@ public class LFTP_Client {
 						}					
 					}
 				}
-				System.out.println("END");
+				
 			} else if (args[0].equals("lget")) {
+				
 				LFTPGet get = new LFTPGet(addr, 10000, 0, 9904, listLock, list, socketLock, socket);
+				get.setFileName(args[2]);
 				get.sayHello();
 				get.start();
 				
@@ -73,6 +81,7 @@ public class LFTP_Client {
 						}									
 					}
 				}
+				
 			} else {
 				System.out.println("Usage: java LFTP_Client lsend/lget myserver mylargefile");
 				return ;
