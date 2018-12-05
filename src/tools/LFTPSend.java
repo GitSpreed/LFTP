@@ -45,22 +45,27 @@ public class LFTPSend extends LFTP {
 		}
 	}
 	
-	protected synchronized void receiveFile() {
+	protected void receiveFile() {
 		boolean flag = true;
 		Packet packet = null;
+		Timer timer = null;
 		while((packet = receive()) != null || flag) {
-			Timer timer = new Timer();
 			if (packet == null) {
 				try {
+					timer = new Timer();
 					timer.schedule(new Task(timer, this, 1000), 1000);
-					wait();
+					synchronized (this) {
+						wait();
+					}
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
 			} else {
 				flag = false;
 				/* TODO set right cancel */
-				timer.cancel();
+				if (timer != null) {
+					timer.cancel();
+				}
 				System.out.println("ReceiveFile: syn=" + packet.isSYN() + " ack=" + packet.isACK());
 				
 				if (packet.isSYN() && packet.isACK()) {
@@ -103,7 +108,7 @@ public class LFTPSend extends LFTP {
 	}
 	
 	public boolean reSend() {
-		Packet packet = cache.get(lastByteRecv + 1);
+		Packet packet = cache.get(lastByteRecv);
 		if (packet != null) {
 			this.send(packet);
 			return true;

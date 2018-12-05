@@ -57,15 +57,18 @@ public class LFTP_Server {
 					}
 				}
 				synchronized(listLock) {
+					System.out.println("main lock the list");
 					list.add(packet);
 					System.out.println("add packet " + packet.getSeqNum() + " to list.");
 					for (Thread iter : threadPool) {
 						synchronized(iter) {
+							System.out.println("main notify the thread " + iter.getId());
 							iter.notify();
 						}
 						
 					}
 				}
+				System.out.println("main unlock the list");
 			}
 			
 		} catch (IOException | IllegalPacketLengthException e) {

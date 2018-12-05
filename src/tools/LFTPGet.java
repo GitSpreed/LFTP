@@ -10,9 +10,7 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Map;
 
 public class LFTPGet extends LFTP {
 	
@@ -24,14 +22,16 @@ public class LFTPGet extends LFTP {
 		super(dstAddr, srcPort, dstPort, UDPDstPort, listLock, list, socketLock, socket);
 	}
 	
-	protected synchronized void receiveFile() {
+	protected void receiveFile() {
 		boolean flag = true;
 		Packet packet = null;
 		while((packet = receive()) != null || flag) {
 			if (packet == null) {
 				System.out.println("get null, wait");
 				try {
-					wait();
+					synchronized (this) {
+						this.wait();
+					}	
 				} catch (InterruptedException e) {
 					e.printStackTrace();
 				}
@@ -46,7 +46,7 @@ public class LFTPGet extends LFTP {
 				}
 				this.setFinished(packet.isFIN());
 				this.sendBack();
-				if (!packet.isFIN()) {
+				if (!packet.isFIN() && !packet.isSYN()) {
 					cache.add(packet);
 				}
 				
