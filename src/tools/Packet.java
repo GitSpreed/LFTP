@@ -121,9 +121,8 @@ public class Packet {
 		this.data = Arrays.copyOf(src.data, src.data.length);
 	}
 	
-	public void save() {
-		/* file IO*/
-		File file = new File("Cache/" + seqNum + ".cache");
+	public void save(long threadId) {
+		File file = new File("Cache/" + threadId + "@" + seqNum + ".cache");
 		FileOutputStream out = null;
 		
 		try {

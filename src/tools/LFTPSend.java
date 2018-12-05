@@ -22,12 +22,13 @@ public class LFTPSend extends LFTP {
 	private Map<Integer, Packet> cache = new HashMap<>();
 	private int count = 0;
 	
+	private Timer timer = null;
+	
 	public LFTPSend(InetAddress dstAddr, int srcPort, int dstPort, int UDPDstPort, Object listLock, MyList list,
 			Object socketLock, DatagramSocket socket) throws SocketException {
 		super(dstAddr, srcPort, dstPort, UDPDstPort, listLock, list, socketLock, socket);
 	}
 	
-	/* TODO correct some logic error*/
 	protected void sendFile() {
 		byte[] data = new byte[Packet.MAX_PACKET_LENGTH - Packet.MIN_PACKET_LENGTH];
 		int bytesNum = 0;
@@ -38,7 +39,6 @@ public class LFTPSend extends LFTP {
 				this.setSeqNum(getSeqNum() + bytesNum);
 				this.send(packet);
 			}
-			System.out.println("read file with " + bytesNum + " bytes");
 			if (bytesNum == -1) {
 				this.setFinished(true);
 				Packet fin = sendFin();
@@ -52,12 +52,13 @@ public class LFTPSend extends LFTP {
 	protected void receiveFile() {
 		boolean flag = true;
 		Packet packet = null;
-		Timer timer = null;
+		
+		timer = new Timer();
+		timer.schedule(new Task(timer, this, 1000), 1000);
+		
 		while((packet = receive()) != null || flag) {
 			if (packet == null) {
 				try {
-					timer = new Timer();
-					timer.schedule(new Task(timer, this, 1000), 1000);
 					synchronized (this) {
 						wait();
 					}
@@ -66,31 +67,28 @@ public class LFTPSend extends LFTP {
 				}
 			} else {
 				flag = false;
-				/* TODO set right cancel */
 				if (timer != null) {
 					timer.cancel();
 				}
-				System.out.println("ReceiveFile: syn=" + packet.isSYN() + " ack=" + packet.isACK());
 				
 				if (packet.isSYN() && packet.isACK()) {
-					System.out.println("setDstPort: " + packet.getSrcPort());
 					this.setDstPort(packet.getSrcPort());
 					this.setAckNum(packet.getSeqNum() + 1);
 					this.setStart(true);
 				}
 				
-				if (packet.isFIN()) {
+				/*if (packet.isFIN()) {
 					this.setFinished(true);
-				}
+				}*/
 				
 				if (this.updateLastByteRecv(packet.getAckNum())) {
 					count++;
 				} else {
 					count = 1;
 				}
-				
+
 				//Quick reSend
-				if (count == 3) {
+				if (count >= 3) {
 					this.reSend();
 				}
 			}
@@ -102,7 +100,7 @@ public class LFTPSend extends LFTP {
 		this.fileName = new String(name);
 		if (!file.exists()) {
 			this.setFinished(true);
-			System.out.println("file not exist:" + name);
+			System.out.println("Thread " + this.getId() + "> " + "file not exist:" + name);
 			return ;
 		}
 		try {
@@ -114,6 +112,7 @@ public class LFTPSend extends LFTP {
 	
 	public boolean reSend() {
 		Packet packet = cache.get(lastByteRecv);
+		System.out.println("Thread " + this.getId() + "> " + "resend the packet " + lastByteRecv);
 		if (packet != null) {
 			this.send(packet);
 			return true;
@@ -123,6 +122,7 @@ public class LFTPSend extends LFTP {
 	
 	public void sayHello() {
 		int seqNum = (int)(1 + Math.random() * 1000);
+		System.out.println("Thread " + this.getId() + "> " + "say \"hello\" to " + this.getDstAddr().toString() + " with random seqNum(" + seqNum + ")");
 		Packet packet = new Packet(getSrcPort(), getDstPort(), true, false, false, true, seqNum, 0, getFwnd(), fileName.getBytes());
 		seqNum += fileName.getBytes().length;
 		this.setSeqNum(seqNum);
@@ -133,6 +133,7 @@ public class LFTPSend extends LFTP {
 	
 	public void replyHello() {
 		int seqNum = (int)(1 + Math.random() * 1000);
+		System.out.println("Thread " + this.getId() + "> " + "reply \"hello\" to " + this.getDstAddr().toString() + " with random seqNum(" + seqNum + ")");
 		Packet packet = new Packet(getSrcPort(), getDstPort(), true, true, false, true, seqNum++, getAckNum(), getFwnd(), new byte[1]);
 		this.setSeqNum(seqNum);
 		cache.put(seqNum, packet);
@@ -143,7 +144,7 @@ public class LFTPSend extends LFTP {
 	@Override
 	public void run() {
 
-		System.out.println("begin to run");
+		System.out.println("Thread " + this.getId() + "> " + "start");
 		while(!this.isStart()) {
 			this.receiveFile();
 		}
@@ -158,7 +159,11 @@ public class LFTPSend extends LFTP {
 				e.printStackTrace();
 			}
 		}
-		System.out.println("end to run");
+		
+		while (!isSendOver()) {
+			this.receiveFile();
+		}
+		System.out.println("Thread " + this.getId() + "> " + "end");
 	}
 
 }

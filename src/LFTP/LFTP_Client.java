@@ -15,18 +15,19 @@ import tools.Packet;
 
 public class LFTP_Client {
 	
-	static final int UDPSendPort = 9900;
-	static final int UDPGetPort = 9902;
+	static final int ClientUDPSendPort = 9900;
+	static final int ClientUDPGetPort = 9902;
+	static final int ServerUDPSendPort = 9903;
+	static final int ServerUDPGetPort = 9904;
 	
 	public static void main(String[] args) {
+		
+		System.out.println("===========================  Client start  =================================");
 		
 		if (args.length != 3) {
 			System.out.println("Usage: java LFTP_Client lsend/lget myserver mylargefile");
 			return ;
 		}
-		System.out.println("arg[0]="+args[0]);
-		System.out.println("arg[1]="+args[1]);
-		System.out.println("arg[2]="+args[2]);
 		
 		Object listLock = new Object();
 		Object socketLock = new Object();
@@ -35,8 +36,8 @@ public class LFTP_Client {
 		DatagramSocket recSocket = null;
 		
 		try {
-			socket = new DatagramSocket(UDPSendPort);
-			recSocket = new DatagramSocket(UDPGetPort);
+			socket = new DatagramSocket(ClientUDPSendPort);
+			recSocket = new DatagramSocket(ClientUDPGetPort);
 		} catch (SocketException e) {
 			e.printStackTrace();
 		}
@@ -46,7 +47,7 @@ public class LFTP_Client {
 			addr = InetAddress.getByName(args[1]);
 			if (args[0].equals("lsend")) {
 				
-				LFTPSend send = new LFTPSend(addr, 10000, 0, 9904, listLock, list, socketLock, socket);
+				LFTPSend send = new LFTPSend(addr, 10000, 0, ServerUDPGetPort, listLock, list, socketLock, socket);
 				send.setFileName(args[2]);
 				send.sayHello();
 				send.start();
@@ -54,17 +55,19 @@ public class LFTP_Client {
 				DatagramPacket p = new DatagramPacket(new byte[1500], 1500);
 				while (!send.isFinished()) {
 					recSocket.receive(p);
+					Packet packet = new Packet(p.getData());
 					synchronized(listLock) {
-						list.add(new Packet(p.getData()));
+						list.add(packet);
 						synchronized (send) {
 							send.notify();	
 						}					
 					}
 				}
+				System.out.println("loop end");
 				
 			} else if (args[0].equals("lget")) {
 				
-				LFTPGet get = new LFTPGet(addr, 10000, 0, 9904, listLock, list, socketLock, socket);
+				LFTPGet get = new LFTPGet(addr, 10000, 0, ServerUDPGetPort, listLock, list, socketLock, socket);
 				get.setFileName(args[2]);
 				get.sayHello();
 				get.start();
@@ -73,15 +76,15 @@ public class LFTP_Client {
 				while (!get.isFinished()) {
 					recSocket.receive(p);
 					Packet packet = new Packet(Arrays.copyOf(p.getData(), p.getLength()));
-					System.out.println("add packet " + packet.getSeqNum() + " to list.");
+					System.out.println("Client > add packet " + packet.getSeqNum() + " to list.");
 					synchronized(listLock) {
 						list.add(packet);
 						synchronized(get) {
 							get.notify();
 						}									
 					}
+					if (packet.isFIN()) break;
 				}
-				
 			} else {
 				System.out.println("Usage: java LFTP_Client lsend/lget myserver mylargefile");
 				return ;

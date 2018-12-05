@@ -19,6 +19,7 @@ public class LFTP extends Thread{
 	
 	private boolean isStart = false;
 	private boolean isFinished = false;
+	private boolean sendOver = false;
 	
 	private Object listLock;
 	private Object socketLock;
@@ -50,7 +51,7 @@ public class LFTP extends Thread{
 			DatagramPacket datagramPacket = new DatagramPacket(data.getBytes(), data.getLength(), dstAddr, UDPDstPort);
 			try {
 				socket.send(datagramPacket);
-				System.out.println("Send Packet: SrcPort=" + data.getSrcPort() + " DstPort=" + data.getDstPort()
+				System.out.println("Thread " + this.getId() + "> " + "Send Packet: SrcPort=" + data.getSrcPort() + " DstPort=" + data.getDstPort()
 									+ " seq=" + data.getSeqNum() + " ack=" + data.getAckNum() + " "
 									+ data.isSYN() + " " + data.isACK() + " " +  data.isFIN() + " " + data.isREQ());
 			} catch (IOException e) {
@@ -67,7 +68,9 @@ public class LFTP extends Thread{
 				temp = iter.next();
 				if (temp.getDstPort() == srcPort) {
 					iter.remove();
-					System.out.println("Receive Packet DstPort=" + temp.getDstPort() + " seq=" + temp.getSeqNum() + " ack=" + temp.getAckNum());
+					System.out.println("Thread " + this.getId() + "> " + "Receive Packet SrcPort=" + temp.getSrcPort() + " DstPort=" + temp.getDstPort()
+										+ " seq=" + temp.getSeqNum() + " ack=" + temp.getAckNum() + " "
+										+ temp.isSYN() + " " + temp.isACK() + " " +  temp.isFIN() + " " + temp.isREQ());
 					return temp;
 				}
 			}
@@ -76,8 +79,8 @@ public class LFTP extends Thread{
 	}
 	
 	protected void sendBack() {
-		Packet packet = new Packet(srcPort, dstPort, false, true, false, false, seqNum++, ackNum, fwnd, new byte[1]);
-		System.out.println("Send back ACK=" + ackNum);
+		Packet packet = new Packet(srcPort, dstPort, false, true, sendOver, false, seqNum++, ackNum, fwnd, new byte[1]);
+		//System.out.println("Send back ACK=" + ackNum);
 		this.send(packet);
 	}
 	
@@ -100,6 +103,10 @@ public class LFTP extends Thread{
 			if (map.get(seq) != null) return false;
 			map.put(seq, ack);
 		}
+
+		if (isFinished && map.isEmpty()) {
+			sendOver = true;
+		}
 		return true;
 	}
 	
@@ -108,6 +115,9 @@ public class LFTP extends Thread{
 			return true;
 		} else if (lastByteRecv < byteNum) {
 			lastByteRecv = byteNum;
+		}
+		if (isFinished && lastByteRecv == seqNum) {
+			sendOver = true;
 		}
 		return false;
 	}
@@ -193,5 +203,9 @@ public class LFTP extends Thread{
 
 	public void setStart(boolean isStart) {
 		this.isStart = isStart;
+	}
+
+	public boolean isSendOver() {
+		return sendOver;
 	}
 }

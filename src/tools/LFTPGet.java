@@ -30,7 +30,7 @@ public class LFTPGet extends LFTP {
 		Packet packet = null;
 		while((packet = receive()) != null || flag) {
 			if (packet == null) {
-				System.out.println("get null, wait");
+
 				try {
 					synchronized (this) {
 						this.wait();
@@ -39,15 +39,16 @@ public class LFTPGet extends LFTP {
 					e.printStackTrace();
 				}
 			} else {
-				System.out.println("Thread get packet " + packet.getSeqNum());
+
 				flag = false;
-				this.updateAckNum(packet.getSeqNum(), packet.getSeqNum() + packet.getData().length);
 				
+				this.setFinished(packet.isFIN());		
 				if (packet.isSYN() && packet.isACK()) {
 					this.setDstPort(packet.getSrcPort());
 					this.setAckNum(packet.getSeqNum() + 1);
+				} else {
+					this.updateAckNum(packet.getSeqNum(), packet.getSeqNum() + packet.getData().length);
 				}
-				this.setFinished(packet.isFIN());
 				this.sendBack();
 				if (!packet.isFIN() && !packet.isSYN()) {
 					cache.add(packet);
@@ -58,7 +59,7 @@ public class LFTPGet extends LFTP {
 				while (iter.hasNext()) {
 					Packet temp = iter.next();
 					if (temp.getSeqNum() < this.getAckNum()) {
-						packet.save();
+						packet.save(this.getId());
 						indexTable.add(packet.getSeqNum());
 						iter.remove();
 					}
@@ -68,7 +69,7 @@ public class LFTPGet extends LFTP {
 	}
 	
 	private void mergeFile() {
-		System.out.println("begin merge the file");
+		System.out.println("Thread " + this.getId() + "> " + "begin merge the file");
 		try {
 			File inFile = null;
 			FileInputStream in = null;
@@ -92,8 +93,7 @@ public class LFTPGet extends LFTP {
 			    }
 			});
 			for (int iter : indexTable) {
-				inFile = new File("Cache/" + iter + ".cache");
-				System.out.println("merge the cache " + iter);
+				inFile = new File("Cache/" + this.getId() + "@" + iter + ".cache");
 				in = new FileInputStream(inFile);
 				int len = in.read(data);
 				in.close();
@@ -104,12 +104,13 @@ public class LFTPGet extends LFTP {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println("end merge the file");
+		System.out.println("Thread " + this.getId() + "> " + "end merge the file");
 		
 	}
 	
 	public void sayHello() {
 		int seqNum = (int)(1 + Math.random() * 1000);
+		System.out.println("Thread " + this.getId() + "> " + "say \"hello\" to " + this.getDstAddr().toString() + " with random seqNum(" + seqNum + ")");
 		Packet packet = new Packet(getSrcPort(), getDstPort(), true, false, false, false, seqNum, 0, getFwnd(), fileName.getBytes());
 		seqNum += fileName.getBytes().length;
 		this.setSeqNum(seqNum);
@@ -118,6 +119,7 @@ public class LFTPGet extends LFTP {
 	
 	public void replyHello() {
 		int seqNum = (int)(1 + Math.random() * 1000);
+		System.out.println("Thread " + this.getId() + "> " + "reply \"hello\" to " + this.getDstAddr().toString() + " with random seqNum(" + seqNum + ")");
 		Packet packet = new Packet(getSrcPort(), getDstPort(), true, true, false, false, seqNum++, getAckNum(), getFwnd(), new byte[1]);
 		this.setSeqNum(seqNum);
 		this.send(packet);
@@ -133,10 +135,12 @@ public class LFTPGet extends LFTP {
 	
 	@Override
 	public void run() {
-		while (!this.isFinished()) {
+		System.out.println("Thread " + this.getId() + "> " + "start");
+		while (!isSendOver()) {
 			this.receiveFile();
 		}
 		this.mergeFile();
+		System.out.println("Thread " + this.getId() + "> " + "end");
 	}
 
 }
