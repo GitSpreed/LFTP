@@ -6,6 +6,7 @@ import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 public class LFTP extends Thread{
@@ -61,10 +62,11 @@ public class LFTP extends Thread{
 	protected Packet receive(){
 		synchronized(listLock) {
 			Packet temp = null;
-			for (Packet iter : list) {
-				if (iter.getDstPort() == srcPort) {
-					temp = iter;
-					list.remove(iter);
+			Iterator<Packet> iter = list.iterator();
+			while (iter.hasNext()) {
+				temp = iter.next();
+				if (temp.getDstPort() == srcPort) {
+					iter.remove();
 					System.out.println("Receive Packet DstPort=" + temp.getDstPort() + " seq=" + temp.getSeqNum() + " ack=" + temp.getAckNum());
 					return temp;
 				}
