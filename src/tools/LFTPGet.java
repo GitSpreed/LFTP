@@ -46,7 +46,9 @@ public class LFTPGet extends LFTP {
 				}
 				this.setFinished(packet.isFIN());
 				this.sendBack();
-				cache.add(packet);
+				if (!packet.isFIN()) {
+					cache.add(packet);
+				}
 				
 				/* write cache into file */
 				Iterator<Packet> iter = cache.iterator();
@@ -91,6 +93,7 @@ public class LFTPGet extends LFTP {
 			});
 			for (int iter : indexTable) {
 				inFile = new File("Cache/" + iter + ".cache");
+				System.out.println("merge the cache " + iter);
 				in = new FileInputStream(inFile);
 				int len = in.read(data);
 				in.close();
@@ -107,15 +110,15 @@ public class LFTPGet extends LFTP {
 	
 	public void sayHello() {
 		int seqNum = (int)(1 + Math.random() * 1000);
-		Packet packet = new Packet(getSrcPort(), getDstPort(), true, false, false, false, seqNum, 0, getFwnd(), new byte[1]);
-		this.setSeqNum(seqNum++);
+		Packet packet = new Packet(getSrcPort(), getDstPort(), true, false, false, false, seqNum++, 0, getFwnd(), new byte[1]);
+		this.setSeqNum(seqNum);
 		this.send(packet);
 	}
 	
 	public void replyHello() {
 		int seqNum = (int)(1 + Math.random() * 1000);
+		Packet packet = new Packet(getSrcPort(), getDstPort(), true, true, false, false, seqNum++, getAckNum(), getFwnd(), new byte[1]);
 		this.setSeqNum(seqNum);
-		Packet packet = new Packet(getSrcPort(), getDstPort(), true, true, false, false, seqNum, getAckNum(), getFwnd(), new byte[1]);
 		this.send(packet);
 	}
 	

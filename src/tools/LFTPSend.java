@@ -113,8 +113,8 @@ public class LFTPSend extends LFTP {
 	
 	public void sayHello() {
 		int seqNum = (int)(1 + Math.random() * 1000);
-		Packet packet = new Packet(getSrcPort(), getDstPort(), true, false, false, true, seqNum, 0, getFwnd(), new byte[1]);
-		this.setSeqNum(seqNum++);
+		Packet packet = new Packet(getSrcPort(), getDstPort(), true, false, false, true, seqNum++, 0, getFwnd(), new byte[1]);
+		this.setSeqNum(seqNum);
 		cache.put(seqNum, packet);
 		this.send(packet);
 	}
@@ -122,8 +122,9 @@ public class LFTPSend extends LFTP {
 	
 	public void replyHello() {
 		int seqNum = (int)(1 + Math.random() * 1000);
+		Packet packet = new Packet(getSrcPort(), getDstPort(), true, true, false, true, seqNum++, getAckNum(), getFwnd(), new byte[1]);
 		this.setSeqNum(seqNum);
-		Packet packet = new Packet(getSrcPort(), getDstPort(), true, true, false, true, seqNum, getAckNum(), getFwnd(), new byte[1]);
+		cache.put(seqNum, packet);
 		this.send(packet);
 	}
 	

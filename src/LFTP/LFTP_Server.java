@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import Exception.IllegalPacketLengthException;
 import tools.LFTPGet;
@@ -33,7 +34,8 @@ public class LFTP_Server {
 			DatagramPacket p = new DatagramPacket(new byte[1500], 1500);
 			while (true) {
 				recSocket.receive(p);
-				Packet packet = new Packet(p.getData());
+				Packet packet = new Packet(Arrays.copyOf(p.getData(), p.getLength()));
+				System.out.println("UDP data packet length" + p.getData().length + " " + p.getLength());
 				System.out.println("Receive packet: SrcPort=" + packet.getSrcPort() + " DstPort=" + packet.getDstPort() + " seq=" + packet.getSeqNum() + " ack=" + packet.getAckNum() + " " + packet.isSYN() + " " + packet.isACK() + " " + packet.isFIN() + " " + packet.isREQ());
 				if (packet.isSYN()) {
 					if (packet.isREQ()) {

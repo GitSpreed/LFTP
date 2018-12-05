@@ -5,6 +5,8 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.SocketException;
+import java.util.Arrays;
+
 import Exception.IllegalPacketLengthException;
 import tools.LFTPGet;
 import tools.LFTPSend;
@@ -62,7 +64,7 @@ public class LFTP_Client {
 				DatagramPacket p = new DatagramPacket(new byte[1500], 1500);
 				while (!get.isFinished()) {
 					recSocket.receive(p);
-					Packet packet = new Packet(p.getData());
+					Packet packet = new Packet(Arrays.copyOf(p.getData(), p.getLength()));
 					System.out.println("add packet " + packet.getSeqNum() + " to list.");
 					list.add(packet);
 					synchronized(listLock) {
