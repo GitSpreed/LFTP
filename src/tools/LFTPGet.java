@@ -84,8 +84,10 @@ public class LFTPGet extends LFTP {
 			    public int compare(Integer lhs, Integer rhs) {
 			        if ( lhs > rhs ) {
 			            return 1;
-			        } else {
+			        } else if (lhs < rhs){
 			            return -1;
+			        } else {
+			        	return 0;
 			        }
 			    }
 			});
