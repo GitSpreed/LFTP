@@ -35,6 +35,7 @@ public class LFTPSend extends LFTP {
 				this.setSeqNum(getSeqNum() + bytesNum);
 				this.send(packet);
 			}
+			System.out.println("read file with " + bytesNum + " bytes");
 			if (bytesNum == -1) {
 				this.setFinished(true);
 				Packet fin = sendFin();

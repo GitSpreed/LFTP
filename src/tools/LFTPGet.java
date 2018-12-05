@@ -76,7 +76,7 @@ public class LFTPGet extends LFTP {
 			//in.close();
 			//String name = new String(data);
 			
-			File outFile = new File("download/" + "test.txt");
+			File outFile = new File("download/" + "test.mp4");
 			if (!outFile.exists()) {
 				outFile.createNewFile();
 			}

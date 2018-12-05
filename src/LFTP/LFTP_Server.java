@@ -51,7 +51,7 @@ public class LFTP_Server {
 						temp.setAckNum(packet.getSeqNum() + 1);
 						temp.replyHello();
 						temp.setStart(true);
-						temp.setFilePath("test.txt");
+						temp.setFilePath("test.mp4");
 						threadPool.add(temp);
 						temp.start();
 					}
