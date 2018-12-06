@@ -8,27 +8,28 @@ import java.util.Arrays;
 
 import Exception.IllegalPacketLengthException;
 
+//LFTP数据包结构
 public class Packet {
 	
-	/*The min length of a packet*/
-	public final static int MIN_PACKET_LENGTH = 15;
-	public final static int MAX_PACKET_LENGTH = 1500;
+	public final static int MIN_PACKET_LENGTH = 15;    		//LFTP数据包最小长度
+	public final static int MAX_PACKET_LENGTH = 1500;		//LFTP数据包最大长度
 	
-	private int srcPort;
-	private int dstPort;
+	private int srcPort;							//LFTP源端口
+	private int dstPort;							//LFTP目标端口
 	
-	private boolean SYN = false;
-	private boolean ACK = false;
-	private boolean FIN = false;
-	private boolean REQ = true;
+	private boolean SYN = false;					//是否为握手数据包
+	private boolean ACK = false;					//是否为确认数据包
+	private boolean FIN = false;					//是否为结束确认数据包
+	private boolean REQ = true;						//true表示是发送数据的请求，false表示是接收数据的请求
 	
-	private int seqNum = 0;
+	private int seqNum = 0;							
 	private int ackNum = 0;
 	
-	private int windowLen = 20000;
+	private int windowLen = 20000;					//窗口长度
 	
-	private byte[] data;
+	private byte[] data;							//具体传送的数据
 	
+	//根据字节数据构建LFTP包
 	public Packet(byte[] packetByte) throws IllegalPacketLengthException {
 		if (packetByte.length < MIN_PACKET_LENGTH || packetByte.length > MAX_PACKET_LENGTH) 
 			throw new IllegalPacketLengthException("Too short packet with " + packetByte.length + "bytes.");
@@ -51,6 +52,7 @@ public class Packet {
 		data = Arrays.copyOfRange(packetByte, MIN_PACKET_LENGTH - 1, packetByte.length);
 	}
 	
+	//根据相关信息构建LFTP包
 	public Packet(int srcPort, int dstPort, boolean SYN, boolean ACK, boolean FIN, boolean REQ, int seqNum, int ackNum, int windowLen, byte[] data) {
 		this.srcPort = srcPort;
 		this.dstPort = dstPort;
@@ -64,6 +66,7 @@ public class Packet {
 		this.data = data;
 	}
 	
+	//将LFTP包转化为字节流
 	public byte[] getBytes() {
 		byte[] ret = new byte[MIN_PACKET_LENGTH + data.length - 1];
 		
@@ -103,10 +106,12 @@ public class Packet {
 		return ret;
 	}
 	
+	//得到LFTP包转化为字节流后的长度
 	public int getLength() {
 		return MIN_PACKET_LENGTH + data.length - 1;
 	}
 	
+	//赋值
 	public void assign(Packet src) {
 		this.srcPort = src.srcPort;
 		this.dstPort = src.dstPort;
@@ -120,6 +125,7 @@ public class Packet {
 		this.data = Arrays.copyOf(src.data, src.data.length);
 	}
 	
+	//将LFTP包缓存到硬盘中
 	public void save(long threadId) {
 		File file = new File("Cache/" + threadId + "@" + seqNum + ".cache");
 		FileOutputStream out = null;
@@ -135,11 +141,8 @@ public class Packet {
 			e.printStackTrace();
 		}
 	}
-	
-	public boolean isFinReply() {
-		return SYN && ACK && FIN;
-	}
-	
+
+	//getter and setter
 	public int getWindowLen() {
 		return windowLen;
 	}

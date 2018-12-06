@@ -3,6 +3,7 @@ package tools;
 import java.util.Timer;
 import java.util.TimerTask;
 
+//定时器超时时所启动的动作
 public class Task extends TimerTask {
 	
 	private Timer timer = null;
@@ -18,8 +19,9 @@ public class Task extends TimerTask {
 
 	@Override
 	public void run() {
-		callback.reSend();
-		time *= 2;
+		callback.reSend();				//数据包重传
+		time *= 2;						//计时器等待时长翻倍
+		callback.cwndMinus();			//拥塞窗口减小
 		timer.schedule(new Task(timer, callback, time), time);
 	}
 

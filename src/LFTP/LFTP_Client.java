@@ -63,7 +63,6 @@ public class LFTP_Client {
 						}					
 					}
 				}
-				System.out.println("loop end");
 				
 			} else if (args[0].equals("lget")) {
 				

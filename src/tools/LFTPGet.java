@@ -12,19 +12,23 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 
+//LFTP数据包的接收端
+
 public class LFTPGet extends LFTP {
 	
-	private ArrayList<Packet> cache = new ArrayList<Packet>();
-	private ArrayList<Integer> indexTable = new ArrayList<Integer>();
+	private ArrayList<Packet> cache = new ArrayList<Packet>();			//接收到数据包的缓存
+	private ArrayList<Integer> indexTable = new ArrayList<Integer>();	//LFTP包seqNum的索引表，指示每一个seqNum代表的是第几个包，用于合并文件
 	
-	private String downloadPath = "download/";
-	private String fileName = null;
+	private String downloadPath = "download/";			//接收到文件的默认保存路径
+	private String fileName = null;						//接收到文件的文件名
 
+	//构造函数
 	public LFTPGet(InetAddress dstAddr, int srcPort, int dstPort, int UDPDstPort, Object listLock, MyList list,
 			Object socketLock, DatagramSocket socket) throws SocketException {
 		super(dstAddr, srcPort, dstPort, UDPDstPort, listLock, list, socketLock, socket);
 	}
 	
+	//从LFTP包队列中接收文件
 	protected void receiveFile() {
 		boolean flag = true;
 		Packet packet = null;
@@ -68,6 +72,7 @@ public class LFTPGet extends LFTP {
 		}
 	}
 	
+	//接收到所有数据包，对数据包进行合并，得到目标文件
 	private void mergeFile() {
 		System.out.println("Thread " + this.getId() + "> " + "begin merge the file");
 		try {
@@ -108,6 +113,7 @@ public class LFTPGet extends LFTP {
 		
 	}
 	
+	//发送连接请求，第一次握手
 	public void sayHello() {
 		int seqNum = (int)(1 + Math.random() * 1000);
 		System.out.println("Thread " + this.getId() + "> " + "say \"hello\" to " + this.getDstAddr().toString() + " with random seqNum(" + seqNum + ")");
@@ -117,6 +123,7 @@ public class LFTPGet extends LFTP {
 		this.send(packet);
 	}
 	
+	//回复连接请求，第二次握手
 	public void replyHello() {
 		int seqNum = (int)(1 + Math.random() * 1000);
 		System.out.println("Thread " + this.getId() + "> " + "reply \"hello\" to " + this.getDstAddr().toString() + " with random seqNum(" + seqNum + ")");
@@ -125,14 +132,17 @@ public class LFTPGet extends LFTP {
 		this.send(packet);
 	}
 	
+	//设置文件下载路径
 	public void setDownloadPath(String path) {
 		this.downloadPath = new String(path);
 	}
 	
+	//设置接收到的文件名
 	public void setFileName(String name) {
 		this.fileName = new String(name);
 	}
 	
+	//接收端的运行方式
 	@Override
 	public void run() {
 		System.out.println("Thread " + this.getId() + "> " + "start");

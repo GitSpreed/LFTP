@@ -26,7 +26,9 @@ public class LFTP extends Thread{
 
 	private MyList list;
 	
-	private int cwnd = 20000, fwnd = 20000;
+	private int fwnd = 20000;
+	private double cwnd = Packet.MIN_PACKET_LENGTH;
+	private int threshold = Integer.MAX_VALUE;
 	private int seqNum = 0;
 	private int ackNum = 0;
 	
@@ -47,6 +49,25 @@ public class LFTP extends Thread{
 		this.socket = socket;
 	}
 	
+	//增大拥塞窗口
+	protected void cwndPlus() {
+		//拥塞窗口小于阈值，指数级增长
+		if (cwnd < threshold) {
+			cwnd += Packet.MIN_PACKET_LENGTH;
+		//拥塞窗口大于阈值，线性增长
+		} else {
+			cwnd += Packet.MIN_PACKET_LENGTH / 200;
+		}
+	}
+	
+	//减小拥塞窗口
+	protected void cwndMinus() {
+		threshold = (int) cwnd / 2;
+		cwnd = threshold;
+	}
+	
+	
+	//参数为一个LFTP数据包，该函数将LFTP数据包封装在UDP数据包中，并发送出去
 	protected void send(Packet data){
 		synchronized(socketLock) {
 			DatagramPacket datagramPacket = new DatagramPacket(data.getBytes(), data.getLength(), dstAddr, UDPDstPort);
@@ -61,6 +82,7 @@ public class LFTP extends Thread{
 		}
 	}
 	
+	//从数据包队列中取出发给该线程的数据包
 	protected Packet receive(){
 		synchronized(listLock) {
 			Packet temp = null;
@@ -79,18 +101,20 @@ public class LFTP extends Thread{
 		}
 	}
 	
+	//收到一个数据包，返回一个ACK确认包
 	protected void sendBack() {
 		Packet packet = new Packet(srcPort, dstPort, false, true, sendOver, false, seqNum++, ackNum, fwnd, new byte[1]);
-		//System.out.println("Send back ACK=" + ackNum);
 		this.send(packet);
 	}
 	
+	//数据发送完毕，发送一个结束确认包FIN
 	protected Packet sendFin() {
 		Packet packet = new Packet(srcPort, dstPort, false, false, true, false, seqNum++, ackNum, fwnd, new byte[1]);
 		this.send(packet);
 		return packet;
 	}
 	
+	//更新收到的最大有序字节的序号
 	protected boolean updateAckNum(int seq, int ack) {
 		if (seq == ackNum) {
 			ackNum = ack;
@@ -111,6 +135,7 @@ public class LFTP extends Thread{
 		return true;
 	}
 	
+	//更新接收端返回的ACK
 	protected boolean updateLastByteRecv(int byteNum) {
 		if (lastByteRecv == byteNum) {
 			return true;
@@ -123,10 +148,12 @@ public class LFTP extends Thread{
 		return false;
 	}
 	
+	//判断发送窗口是否已满
 	protected boolean isWindowFull() {
 		return (seqNum - lastByteRecv) > Math.min(fwnd, cwnd);
 	}
 
+	//未实现的线程run函数，具体在其子类中实现
 	@Override
 	public void run() throws UnsupportedOperationException{
 		throw new UnsupportedOperationException();
