@@ -62,7 +62,7 @@ public class LFTP extends Thread{
 	
 	//减小拥塞窗口
 	protected void cwndMinus() {
-		threshold = (int) cwnd / 2;
+		threshold = Math.max((int) cwnd / 2, Packet.MAX_PACKET_LENGTH);
 		cwnd = threshold;
 	}
 	
