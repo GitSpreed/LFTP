@@ -164,6 +164,7 @@ public class LFTPSend extends LFTP {
 			this.receiveFile();
 		}
 		System.out.println("Thread " + this.getId() + "> " + "end");
+		this.setEnd(true);
 	}
 
 }

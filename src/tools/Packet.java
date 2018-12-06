@@ -64,7 +64,6 @@ public class Packet {
 		this.data = data;
 	}
 	
-	/*TODO get packet bytes*/
 	public byte[] getBytes() {
 		byte[] ret = new byte[MIN_PACKET_LENGTH + data.length - 1];
 		
@@ -135,6 +134,10 @@ public class Packet {
 		} catch(IOException e) {
 			e.printStackTrace();
 		}
+	}
+	
+	public boolean isFinReply() {
+		return SYN && ACK && FIN;
 	}
 	
 	public int getWindowLen() {

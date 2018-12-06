@@ -41,8 +41,8 @@ public class LFTPGet extends LFTP {
 			} else {
 
 				flag = false;
-				
-				this.setFinished(packet.isFIN());		
+				this.updateLastByteRecv(packet.getAckNum());
+				this.setFinished(packet.isFIN());
 				if (packet.isSYN() && packet.isACK()) {
 					this.setDstPort(packet.getSrcPort());
 					this.setAckNum(packet.getSeqNum() + 1);
@@ -139,8 +139,10 @@ public class LFTPGet extends LFTP {
 		while (!isSendOver()) {
 			this.receiveFile();
 		}
+		
 		this.mergeFile();
 		System.out.println("Thread " + this.getId() + "> " + "end");
+		this.setEnd(true);
 	}
 
 }

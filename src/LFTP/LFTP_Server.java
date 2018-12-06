@@ -5,8 +5,10 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 
 import Exception.IllegalPacketLengthException;
+import tools.LFTP;
 import tools.LFTPGet;
 import tools.LFTPSend;
 import tools.MyList;
@@ -19,7 +21,7 @@ public class LFTP_Server {
 	static final int ServerUDPSendPort = 9903;
 	static final int ServerUDPGetPort = 9904;
 	
-	static ArrayList<Thread> threadPool = new ArrayList<>();
+	static ArrayList<LFTP> threadPool = new ArrayList<>();
 	
 	public static void main(String[] args) {
 		
@@ -63,16 +65,46 @@ public class LFTP_Server {
 						threadPool.add(temp);
 						temp.start();
 					}
+				} else if (packet.isFIN()) {				//这里的代码非常不优雅，但是在客户端发送文件时，服务端总是收不到最后的FIN（结束确认包），但此时服务端的接收线程已结束，所以只能在主线程中处理重发的FIN
+					boolean pd = true;
+					System.out.println("get in fin");
+					for (LFTP iter : threadPool) {
+						if (iter.getSrcPort() == packet.getDstPort() && !iter.isEnd()) {
+							System.out.println("The thread "+ iter.getId() + "is exsit");
+							pd = false;
+							break;
+						}
+					}
+					if (pd) {
+						System.out.println("start trush");
+						Packet data = new Packet(packet.getDstPort(), packet.getSrcPort(), false, true, true, false, packet.getAckNum(), packet.getSeqNum() + 1, 20000, new byte[1]);
+						synchronized(socketLock) {
+							DatagramPacket udpPacket = new DatagramPacket(data.getBytes(), data.getLength(), p.getAddress(), ClientUDPGetPort);
+							socket.send(udpPacket);
+						}
+					}
 				}
+				
 				synchronized(listLock) {
 					list.add(packet);
 					System.out.println("Server > add packet " + packet.getSeqNum() + " to list.");
-					for (Thread iter : threadPool) {
+					/*for (Thread iter : threadPool) {
 						synchronized(iter) {
 							//System.out.println("main notify the thread " + iter.getId());
 							iter.notify();
 						}
 						
+					}*/
+					Iterator<LFTP> iter = threadPool.iterator();
+					while (iter.hasNext()) {
+						LFTP temp = iter.next();
+						if (temp.isEnd()) {
+							iter.remove();
+						} else {
+							synchronized(temp) {
+								temp.notify();
+							}
+						}
 					}
 				}
 			}

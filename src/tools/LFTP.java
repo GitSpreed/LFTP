@@ -31,6 +31,7 @@ public class LFTP extends Thread{
 	private int ackNum = 0;
 	
 	protected int lastByteRecv = 0;
+	private boolean end = false;
 	
 	private Map<Integer, Integer> map = new HashMap<Integer, Integer>();
 	
@@ -207,5 +208,17 @@ public class LFTP extends Thread{
 
 	public boolean isSendOver() {
 		return sendOver;
+	}
+	
+	protected void setSendOver(boolean sendOver) {
+		this.sendOver = sendOver;
+	}
+
+	public boolean isEnd() {
+		return end;
+	}
+
+	protected void setEnd(boolean end) {
+		this.end = end;
 	}
 }
