@@ -65,7 +65,7 @@ public class LFTP_Server {
 						threadPool.add(temp);
 						temp.start();
 					}
-				} else if (packet.isFIN()) {				//这里的代码非常不优雅，但是在客户端发送文件时，服务端总是收不到最后的FIN（结束确认包），但此时服务端的接收线程已结束，所以只能在主线程中处理重发的FIN
+				}/* else if (packet.isFIN()) {				//这里的代码非常不优雅，但是在客户端发送文件时，服务端总是收不到最后的FIN（结束确认包），但此时服务端的接收线程已结束，所以只能在主线程中处理重发的FIN
 					boolean pd = true;
 					System.out.println("get in fin");
 					for (LFTP iter : threadPool) {
@@ -83,7 +83,7 @@ public class LFTP_Server {
 							socket.send(udpPacket);
 						}
 					}
-				}
+				}*/
 				
 				synchronized(listLock) {
 					list.add(packet);

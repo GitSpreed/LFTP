@@ -53,7 +53,7 @@ public class LFTP_Client {
 				send.start();
 				
 				DatagramPacket p = new DatagramPacket(new byte[1500], 1500);
-				while (!send.isFinished()) {
+				while (!send.isSendOver()) {
 					recSocket.receive(p);
 					Packet packet = new Packet(p.getData());
 					synchronized(listLock) {
@@ -73,7 +73,7 @@ public class LFTP_Client {
 				get.start();
 				
 				DatagramPacket p = new DatagramPacket(new byte[1500], 1500);
-				while (!get.isFinished()) {
+				while (!get.isSendOver()) {
 					recSocket.receive(p);
 					Packet packet = new Packet(Arrays.copyOf(p.getData(), p.getLength()));
 					System.out.println("Client > add packet " + packet.getSeqNum() + " to list.");
@@ -89,7 +89,7 @@ public class LFTP_Client {
 				System.out.println("Usage: java LFTP_Client lsend/lget myserver mylargefile");
 				return ;
 			}
-			
+			System.out.println("main stop to receive the packet");
 		} catch (IOException | IllegalPacketLengthException e) {
 			e.printStackTrace();
 		}
